@@ -1,7 +1,15 @@
 package com.example.closetoyou
 
+import android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
+import android.Manifest.permission.ACCESS_COARSE_LOCATION
+import android.Manifest.permission.CAMERA
+import android.Manifest.permission.READ_CONTACTS
+import android.Manifest.permission.READ_EXTERNAL_STORAGE
+import android.Manifest.permission.WRITE_CONTACTS
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -14,6 +22,8 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
 import androidx.biometric.BiometricPrompt
+import androidx.core.app.ActivityCompat.requestPermissions
+import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.core.content.ContextCompat.getMainExecutor
 import com.example.closetoyou.R.string.pin_preferences
 import com.example.closetoyou.R.string.user_pin
@@ -27,6 +37,18 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var biometricManager: BiometricManager
 
     private lateinit var sharedPreferences: SharedPreferences
+
+    private val PERMISSIONS_REQUEST_CODE = 1
+
+    private val REQUIRED_PERMISSIONS = arrayOf(
+        READ_CONTACTS,
+        WRITE_CONTACTS,
+        READ_EXTERNAL_STORAGE,
+        WRITE_EXTERNAL_STORAGE,
+        CAMERA,
+        ACCESS_COARSE_LOCATION,
+        ACCESS_BACKGROUND_LOCATION
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +71,24 @@ class LoginActivity : AppCompatActivity() {
         edtPassword = findViewById(R.id.edt_password)
 
         setupButtonClickListeners()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == PERMISSIONS_REQUEST_CODE) {
+            if (grantResults.isNotEmpty()) {
+                for (i in grantResults.indices) {
+                    if (grantResults[i] != PERMISSION_GRANTED) {
+                        // Permission is denied. Handle the failure.
+                        println("PERMISSION IS NOT GRATED")
+                    }
+                }
+
+                val intent = Intent(this, HomeActivity::class.java)
+                startActivity(intent)
+            }
+        }
     }
 
     private fun setupButtonClickListeners() {
@@ -90,19 +130,19 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun showHome() {
+        val hasPermissions = hasPermissions(REQUIRED_PERMISSIONS)
+        println("hasPermission = $hasPermissions")
+
+        if (!hasPermissions) {
+            println("DUPA!!!!")
+            requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE)
+        } else {
+            val intent = Intent(this, HomeActivity::class.java)
+            startActivity(intent)
+        }
+
         Toast.makeText(this, "Welcome!", Toast.LENGTH_SHORT).show()
         Log.d("ENTER_PIN_SUCCESS", "Correct PIN")
-
-        val intent = Intent(this, HomeActivity::class.java)
-        startActivity(intent)
-    }
-
-    private fun onBackButtonClick() {
-        val length = enteredPin.length
-        if (length > 0) {
-            enteredPin.deleteCharAt(length - 1)
-            edtPassword.setText(enteredPin.toString())
-        }
     }
 
     private fun isFirstTimeUser(): Boolean {
@@ -136,6 +176,7 @@ class LoginActivity : AppCompatActivity() {
                 Log.d("BIOMETRIC_HARDWARE_ATTEMPT", "Hardware detected!")
                 return true
             }
+
             else -> {
                 Log.d("BIOMETRIC_HARDWARE_ATTEMPT", "Hardware not detected!")
                 return false
@@ -164,7 +205,7 @@ class LoginActivity : AppCompatActivity() {
 
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
-                    onAuthenticationFailed()
+                    onAuthFailed()
                 }
             })
 
@@ -176,7 +217,24 @@ class LoginActivity : AppCompatActivity() {
         Log.d("AUTH_ERR", "Authentication Error!")
     }
 
-    private fun onAuthenticationFailed() {
+    private fun onAuthFailed() {
         Log.d("AUTH_FAILED", "Authentication failed")
+    }
+
+    private fun hasPermissions(permissions: Array<String>): Boolean {
+        for (permission in permissions) {
+            if (checkSelfPermission(this, permission) != PERMISSION_GRANTED) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun onBackButtonClick() {
+        val length = enteredPin.length
+        if (length > 0) {
+            enteredPin.deleteCharAt(length - 1)
+            edtPassword.setText(enteredPin.toString())
+        }
     }
 }
