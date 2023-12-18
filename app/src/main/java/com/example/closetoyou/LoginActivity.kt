@@ -12,10 +12,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
-import androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE
 import androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
 import androidx.biometric.BiometricPrompt
-import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getMainExecutor
 import com.example.closetoyou.R.string.pin_preferences
 import com.example.closetoyou.R.string.user_pin
 import java.util.concurrent.Executor
@@ -47,15 +46,13 @@ class LoginActivity : AppCompatActivity() {
 
         biometricManager = BiometricManager.from(this)
 
-        when (biometricManager.canAuthenticate(BIOMETRIC_WEAK)) {
-            BIOMETRIC_SUCCESS ->
-                Log.d("LOGIN_ATTEMPT", "Hardware detected!")
+        if (checkBiometricSupport()) {
+            println("UDALO SIE!")
 
-            BIOMETRIC_ERROR_NO_HARDWARE ->
-                Log.d("LOGIN_ATTEMPT", "No hardware detected")
+            showBiometricPrompt()
+        } else {
+            println("NIE UDALO SIE!")
         }
-
-        executor = ContextCompat.getMainExecutor(this)
 
         edtPassword = findViewById(R.id.edt_password)
 
@@ -140,5 +137,52 @@ class LoginActivity : AppCompatActivity() {
 
         enteredPin.clear()
         edtPassword.text.clear()
+    }
+
+    private fun checkBiometricSupport(): Boolean {
+        val biometricManager = BiometricManager.from(this)
+        return when (biometricManager.canAuthenticate(BIOMETRIC_WEAK)) {
+            BIOMETRIC_SUCCESS ->
+                true
+
+            else -> false
+        }
+    }
+
+    private fun showBiometricPrompt() {
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Biometric Authentication")
+            .setSubtitle("Log in using your biometric credential")
+            .setNegativeButtonText("Enter PIN")
+            .build()
+
+        val biometricPrompt = BiometricPrompt(this,
+            getMainExecutor(this), object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    onAuthenticationError()
+                }
+
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    showHome()
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    onAuthenticationFailed()
+                }
+            })
+
+        biometricPrompt.authenticate(promptInfo)
+    }
+
+    private fun onAuthenticationError() {
+        Toast.makeText(this, "Error!", Toast.LENGTH_SHORT).show()
+        Log.d("AUTH_ERR", "Authentication Error!")
+    }
+
+    private fun onAuthenticationFailed() {
+        Log.d("AUTH_FAILED", "Authentication failed")
     }
 }
