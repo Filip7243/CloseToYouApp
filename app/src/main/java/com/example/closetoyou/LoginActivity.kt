@@ -17,7 +17,6 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat.getMainExecutor
 import com.example.closetoyou.R.string.pin_preferences
 import com.example.closetoyou.R.string.user_pin
-import java.util.concurrent.Executor
 
 class LoginActivity : AppCompatActivity() {
 
@@ -26,9 +25,6 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var vibrator: Vibrator
 
     private lateinit var biometricManager: BiometricManager
-    private lateinit var biometricPrompt: BiometricPrompt
-    private lateinit var promptInfo: BiometricPrompt.PromptInfo
-    private lateinit var executor: Executor
 
     private lateinit var sharedPreferences: SharedPreferences
 
@@ -47,11 +43,7 @@ class LoginActivity : AppCompatActivity() {
         biometricManager = BiometricManager.from(this)
 
         if (checkBiometricSupport()) {
-            println("UDALO SIE!")
-
             showBiometricPrompt()
-        } else {
-            println("NIE UDALO SIE!")
         }
 
         edtPassword = findViewById(R.id.edt_password)
@@ -123,10 +115,8 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun vibratePhone() {
-        // Create a vibration effect of 100 milliseconds
         val vibrationEffect = VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
 
-        // Vibrate with the effect
         vibrator.vibrate(vibrationEffect)
     }
 
@@ -142,10 +132,14 @@ class LoginActivity : AppCompatActivity() {
     private fun checkBiometricSupport(): Boolean {
         val biometricManager = BiometricManager.from(this)
         return when (biometricManager.canAuthenticate(BIOMETRIC_WEAK)) {
-            BIOMETRIC_SUCCESS ->
-                true
-
-            else -> false
+            BIOMETRIC_SUCCESS -> {
+                Log.d("BIOMETRIC_HARDWARE_ATTEMPT", "Hardware detected!")
+                return true
+            }
+            else -> {
+                Log.d("BIOMETRIC_HARDWARE_ATTEMPT", "Hardware not detected!")
+                return false
+            }
         }
     }
 
