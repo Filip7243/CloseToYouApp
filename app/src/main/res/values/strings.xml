@@ -13,4 +13,16 @@
     <string name="btn_nine">9</string>
     <string name="btn_zero">0</string>
     <string name="btn_back">back</string>
+
+    <string name="pin_preferences">CloseToYouPreferences</string>
+    <string name="user_pin">UserPin</string>
+    <string name="first_time_user">IsFirstTimeUser</string>
+    <string name="pin_set">Pin set!</string>
+    <string name="pin_set_err">Pins are not equal!</string>
+    <string name="enter_pin_again">Enter PIN again!</string>
+    <string name="confirm_pin_txt">Confirm PIN</string>
+    <string name="enter_pin_again_err">Bad PIN, try again!</string>
+
+    <string name="log_pin_attempt_err">SET_PIN_ATTEMPT_FAILED</string>
+    <string name="log_pin_attempt_success">SET_PIN_ATTEMPT_SUCCESS</string>
 </resources>
