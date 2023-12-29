@@ -1,7 +1,5 @@
 package com.example.closetoyou
 
-import android.content.Context
-import android.content.Context.VIBRATOR_SERVICE
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.VibrationEffect

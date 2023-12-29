@@ -131,11 +131,11 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun showHome() {
-        val hasPermissions = hasPermissions(REQUIRED_PERMISSIONS)
+        val hasPermissions = hasPermissions()
         println("hasPermission = $hasPermissions")
 
         if (!hasPermissions) {
-            println("DUPA!!!!")
+            println("ASS!!!!")
             requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE)
         } else {
             val intent = Intent(this, HomeActivity::class.java)
@@ -175,12 +175,12 @@ class LoginActivity : AppCompatActivity() {
         return when (biometricManager.canAuthenticate(BIOMETRIC_WEAK)) {
             BIOMETRIC_SUCCESS -> {
                 Log.d("BIOMETRIC_HARDWARE_ATTEMPT", "Hardware detected!")
-                return true
+                true
             }
 
             else -> {
                 Log.d("BIOMETRIC_HARDWARE_ATTEMPT", "Hardware not detected!")
-                return false
+                false
             }
         }
     }
@@ -222,8 +222,8 @@ class LoginActivity : AppCompatActivity() {
         Log.d("AUTH_FAILED", "Authentication failed")
     }
 
-    private fun hasPermissions(permissions: Array<String>): Boolean {
-        for (permission in permissions) {
+    private fun hasPermissions(): Boolean {
+        for (permission in REQUIRED_PERMISSIONS) {
             if (checkSelfPermission(this, permission) != PERMISSION_GRANTED) {
                 return false
             }

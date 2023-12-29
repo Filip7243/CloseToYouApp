@@ -33,10 +33,11 @@ class PostRequestCallback(
 
     companion object {
         var notificationId: Int = 1
+        const val channelID = "CLOSE_TO_YOU_CHANNEL"
     }
 
     override fun onFailure(call: Call, e: IOException) {
-        Log.d("REQUEST_ATTEMPT", "Failure ${e.message}")
+        Log.d("POST_REQUEST_ATTEMPT_FAILURE", "Failure ${e.message}")
     }
 
     override fun onResponse(call: Call, response: Response) {
@@ -55,8 +56,6 @@ class PostRequestCallback(
                     it.latitude, it.longitude
                 )
 
-                // TODO: zbierz wszystkie konakty ktore sa w okolicy i wyslij jednego pusha
-
                 Log.d(
                     "POST_RESPONSE_DISTANCE_COUNT", "Distance for number = " +
                             "${it.phoneNumber}, distance = $distance, " +
@@ -74,7 +73,7 @@ class PostRequestCallback(
         friendLat: Double,
         friendLon: Double
     ): Double {
-        val R = 6371e3; // earth radius
+        val r = 6371e3 // earth radius
         val fi1 = userLat * Math.PI / 180
         val fi2 = friendLat * Math.PI / 180
         val deltaFi1 = (friendLat - userLat) * Math.PI / 180
@@ -86,16 +85,13 @@ class PostRequestCallback(
 
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
-        val d = R * c
-
-        return d // return in meters
+        return r * c // return in meters
     }
 
     private fun showNotification(friends: List<Localization>) {
-        val channelId = "CloseToYou_Channel"
-        createNotificationChannel(channelId)
+        createNotificationChannel()
 
-        val notification = NotificationCompat.Builder(context, channelId)
+        val notification = NotificationCompat.Builder(context, channelID)
             .setContentTitle("CloseToYou")
             .setContentText("You have ${friends.size} friends close to you!")
             .setSmallIcon(
@@ -115,10 +111,10 @@ class PostRequestCallback(
         }
     }
 
-    private fun createNotificationChannel(channelId: String) {
+    private fun createNotificationChannel() {
         val name = "Close To You Channel"
         val importance = NotificationManager.IMPORTANCE_DEFAULT
-        val channel = NotificationChannel(channelId, name, importance).apply {
+        val channel = NotificationChannel(channelID, name, importance).apply {
             description = "Channel of closest user's friends"
         }
 

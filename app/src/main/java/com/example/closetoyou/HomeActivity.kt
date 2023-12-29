@@ -1,6 +1,5 @@
 package com.example.closetoyou
 
-import android.location.LocationRequest.QUALITY_BALANCED_POWER_ACCURACY
 import android.os.Build.MODEL
 import android.os.Bundle
 import android.os.Looper
@@ -8,22 +7,28 @@ import android.preference.PreferenceManager.getDefaultSharedPreferences
 import android.widget.Button
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.res.ResourcesCompat
 import com.example.closetoyou.R.drawable.loc_pin1
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
+import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 
 @Suppress("DEPRECATION")
 class HomeActivity : AppCompatActivity() {
+
+    private lateinit var contentFrame: FrameLayout
 
     // map
     private lateinit var mapView: MapView
@@ -55,28 +60,32 @@ class HomeActivity : AppCompatActivity() {
 
         // GPS setup
         locationRequest = LocationRequest.Builder(
-            QUALITY_BALANCED_POWER_ACCURACY,
+            PRIORITY_BALANCED_POWER_ACCURACY,
             15000
         ).build()
 
         locationCallback = LocationCallbackImpl(::checkPeopleInRadius, ::updateUserLocalization)
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        contentFrame = findViewById(R.id.frame)
         val buttonMap = findViewById<Button>(R.id.buttonMap)
         val buttonContacts = findViewById<Button>(R.id.buttonContacts)
-        val contentFrame = findViewById<FrameLayout>(R.id.contentFrame)
+
+        initializeMapView()
 
         buttonMap.setOnClickListener {
             // Show map view
-            showMapView(contentFrame)
+            showMapView()
         }
 
         buttonContacts.setOnClickListener {
             // Show contacts view
-            showContactsView(contentFrame)
+            showContactsView()
         }
 
         // Default view
-        showMapView(contentFrame)
+        showMapView()
     }
 
     override fun onResume() {
@@ -93,6 +102,23 @@ class HomeActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         stopLocationUpdates()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mapView.onDetach()
+    }
+
+    private fun initializeMapView() {
+        mapView = MapView(this)
+
+        mapView.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        )
+        mapView.setTileSource(TileSourceFactory.MAPNIK)
+        mapView.controller.setZoom(18.0)
+        mapView.setMultiTouchControls(true)
     }
 
     private fun startLocationUpdate() {
@@ -112,13 +138,13 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateUserLocalization(latitude: Double, longitude: Double) {
-        var phoneNumber = "ten co da uzytkonwik"
+        val phoneNumber = "users"
 
         val currentLocalization = Localization(phoneNumber, latitude, longitude, true)
 
         val gson = Gson()
         val json = gson.toJson(currentLocalization)
-        var requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+        val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
             .url(API_URL)
@@ -148,7 +174,7 @@ class HomeActivity : AppCompatActivity() {
         )
 
         val gson = Gson()
-        val json = gson.toJson(numbers);
+        val json = gson.toJson(numbers)
         val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
@@ -167,17 +193,19 @@ class HomeActivity : AppCompatActivity() {
         val marker = Marker(mapView)
         marker.position = geoPoint
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-        marker.icon = resources.getDrawable(loc_pin1);
-        marker.title = "${localization.phoneNumber} is here!";
+        marker.icon = ResourcesCompat.getDrawable(resources, loc_pin1, null)
+        marker.title = "${localization.phoneNumber} is here!"
 
         mapView.overlays.add(marker)
     }
 
-    private fun showMapView(frameLayout: FrameLayout) {
-        frameLayout.removeAllViews()
+    private fun showMapView() {
+        contentFrame.removeAllViews()
+        mapView.onResume()
+        contentFrame.addView(mapView)
     }
 
-    private fun showContactsView(frameLayout: FrameLayout) {
-        frameLayout.removeAllViews()
+    private fun showContactsView() {
+        contentFrame.removeAllViews()
     }
 }
