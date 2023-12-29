@@ -35,20 +35,21 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var vibrator: Vibrator
 
     private lateinit var biometricManager: BiometricManager
-
     private lateinit var sharedPreferences: SharedPreferences
 
-    private val PERMISSIONS_REQUEST_CODE = 1
+    companion object {
+        private const val PERMISSIONS_REQUEST_CODE = 1
+        private val REQUIRED_PERMISSIONS = arrayOf(
+            READ_CONTACTS,
+            WRITE_CONTACTS,
+            READ_EXTERNAL_STORAGE,
+            WRITE_EXTERNAL_STORAGE,
+            CAMERA,
+            ACCESS_COARSE_LOCATION,
+            ACCESS_BACKGROUND_LOCATION
+        )
+    }
 
-    private val REQUIRED_PERMISSIONS = arrayOf(
-        READ_CONTACTS,
-        WRITE_CONTACTS,
-        READ_EXTERNAL_STORAGE,
-        WRITE_EXTERNAL_STORAGE,
-        CAMERA,
-        ACCESS_COARSE_LOCATION,
-        ACCESS_BACKGROUND_LOCATION
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
