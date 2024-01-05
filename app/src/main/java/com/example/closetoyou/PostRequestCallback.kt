@@ -37,7 +37,7 @@ class PostRequestCallback(
     }
 
     override fun onFailure(call: Call, e: IOException) {
-        Log.d("POST_REQUEST_ATTEMPT_FAILURE", "Failure ${e.message}")
+        Log.d("POST_REQUEST_FAILURE", "Failure ${e.message}")
     }
 
     override fun onResponse(call: Call, response: Response) {

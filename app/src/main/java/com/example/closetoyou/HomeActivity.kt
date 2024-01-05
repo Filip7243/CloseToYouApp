@@ -20,7 +20,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory.DEFAULT_TILE_SOURCE
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
@@ -40,8 +40,9 @@ class HomeActivity : AppCompatActivity() {
 
     companion object {
         const val MAP_PERMISSION_CODE = 2
-        const val API_URL = "http://192.168.43.29:8080/api/v1/localization"
-        //        const val API_URL = "http://192.168.88.87:8080/api/v1/localization"
+
+        //        const val API_URL = "http://192.168.43.29:8080/api/v1/localization"
+        const val API_URL = "http://192.168.88.87:8080/api/v1/localization"
 
         var userLatitude: Double = 0.0
         var userLongitude: Double = 0.0
@@ -104,21 +105,18 @@ class HomeActivity : AppCompatActivity() {
         stopLocationUpdates()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        mapView.onDetach()
-    }
-
-    private fun initializeMapView() {
+    private fun initializeMapView() {  //todo: mapa znika :/
         mapView = MapView(this)
 
         mapView.layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
         )
-        mapView.setTileSource(TileSourceFactory.MAPNIK)
+        mapView.setTileSource(DEFAULT_TILE_SOURCE)
         mapView.controller.setZoom(18.0)
         mapView.setMultiTouchControls(true)
+        mapView.x = userLatitude.toFloat()
+        mapView.y = userLongitude.toFloat()
     }
 
     private fun startLocationUpdate() {
@@ -138,6 +136,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateUserLocalization(latitude: Double, longitude: Double) {
+        println("UPDATE USER LOCATION")
         val phoneNumber = "users"
 
         val currentLocalization = Localization(phoneNumber, latitude, longitude, true)
@@ -157,6 +156,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkPeopleInRadius() {
+        println("CHECK PEOPLE IN RADIUS!")
         // TODO: get numbers from db
         val numbers = listOf(
             "+48 662-291-021",

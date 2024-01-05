@@ -9,7 +9,7 @@ import java.io.IOException
 class PutRequestCallback : Callback {
 
     override fun onFailure(call: Call, e: IOException) {
-        Log.d("PUT_REQUEST_ATTEMPT_FAILURE", "Failure ${e.message}")
+        Log.d("PUT_REQUEST_FAILURE", "Failure ${e.message}")
     }
 
     override fun onResponse(call: Call, response: Response) {
