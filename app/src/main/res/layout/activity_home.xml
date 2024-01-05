@@ -1,42 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_weight="10"
     tools:context=".HomeActivity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+    <Button
+        android:id="@+id/map_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="1dp"
+        android:text="Map"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/contact_btn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/frameLayout" />
 
-        <FrameLayout
-            android:id="@+id/frame"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"/>
+    <Button
+        android:id="@+id/contact_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="235dp"
+        android:layout_marginBottom="1dp"
+        android:text="Contacts"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/frameLayout" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+    <FrameLayout
+        android:id="@+id/frameLayout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="50dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-            <Button
-                android:id="@+id/buttonMap"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Map" />
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="152dp"
+            android:layout_height="179dp"
+            android:layout_centerInParent="true"
+            android:visibility="visible" />
 
-            <Button
-                android:id="@+id/buttonContacts"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Contacts" />
-        </LinearLayout>
+    </FrameLayout>
 
-    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

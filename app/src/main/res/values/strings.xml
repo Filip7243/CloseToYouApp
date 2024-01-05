@@ -25,4 +25,6 @@
 
     <string name="log_pin_attempt_err">SET_PIN_ATTEMPT_FAILED</string>
     <string name="log_pin_attempt_success">SET_PIN_ATTEMPT_SUCCESS</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
