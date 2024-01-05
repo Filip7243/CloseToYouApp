@@ -58,7 +58,7 @@ import java.time.Instant
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val CONTACT_LIST = "contactList"
+private const val USER_FRIENDS_ARG = "userFriends"
 
 /**
  * A simple [Fragment] subclass.
@@ -67,7 +67,7 @@ private const val CONTACT_LIST = "contactList"
  */
 class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     // TODO: Rename and change types of parameters
-    private var contactList: ArrayList<Localization>? = null
+    private var userFriends: ArrayList<Localization>? = null
 
     private lateinit var database: AppDatabase
     private lateinit var recyclerView: RecyclerView
@@ -86,7 +86,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            contactList = it.getParcelableArrayList(CONTACT_LIST)
+            userFriends = it.getParcelableArrayList(USER_FRIENDS_ARG)
         }
     }
 
@@ -98,6 +98,13 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         val rootView = inflater.inflate(R.layout.fragment_contact, container, false)
 
         initializeUI(rootView)
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA).forEach {
+            if (ContextCompat.checkSelfPermission(requireActivity(), it) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(requireActivity(), arrayOf(it), HomeActivity.PERMISSION_CODE)
+            }
+        }
+        getContacts()
+
         return rootView
     }
 
@@ -112,15 +119,16 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
          */
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(param1: String, param2: String) =
+        fun newInstance(userFriends: ArrayList<Localization>) =
             ContactFragment().apply {
                 arguments = Bundle().apply {
+                    putParcelableArrayList(USER_FRIENDS_ARG, userFriends)
                 }
             }
     }
 
     private fun initializeUI(rootView: View) {
-        database = MyApp.getDatabase(requireActivity().applicationContext)
+        database = MyApp.getDatabase(requireActivity())
         recyclerView = rootView.findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(rootView.context)
         recyclerView.adapter = ContactAdapter(this, database)
@@ -205,13 +213,13 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
                     val body = response.body?.string()
                     val type = object : TypeToken<List<Localization>>() {}.type
                     val contacts: List<Localization> = gson.fromJson(body, type)
-                    displayContacts(contacts)
+
                 }
             }
         })
     }
 
-    private fun getContacts(rootView: View) {
+    private fun getContacts() {
         val contextResolver = requireActivity().contentResolver
         val cursor = contextResolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -236,7 +244,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
             }
         }
 
-        sendNumbersToBackend(numberList)
+        displayContacts(userFriends as ArrayList<Localization>)
     }
 
     private fun displayContacts(contactsFromBackend: List<Localization>) {
@@ -259,7 +267,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
 
     override fun onChangePhotoRequested(phoneNumber: String) {
         currentPhoneNumber = phoneNumber
-        val chooseIntent = AlertDialog.Builder(this.context)
+        val chooseIntent = AlertDialog.Builder(requireActivity())
         chooseIntent.setTitle("Wybierz akcję")
         chooseIntent.setItems(arrayOf("Wybierz z galerii", "Zrób zdjęcie")) { dialog, which ->
             when (which) {
@@ -277,13 +285,13 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     }
 
     private fun handleSelectedImage(imageUri: Uri) {
-        val realPath = getRealPathFromURI(this.requireContext(), imageUri)
+        val realPath = getRealPathFromURI(requireActivity(), imageUri)
         Log.d("ContactActivity", "handleSelectedImage - Real Path: $realPath")
         val phoneNumber = currentPhoneNumber ?: return
 
         if (realPath != null) {
-            val photoPathsFromSharedPreferences = getPhotoPathsFromSharedPreferences(this.requireContext())
-            savePhotoPathsToSharedPreferences(this.requireContext(), photoPathsFromSharedPreferences + (phoneNumber to realPath))
+            val photoPathsFromSharedPreferences = getPhotoPathsFromSharedPreferences(requireActivity())
+            savePhotoPathsToSharedPreferences(requireActivity(), photoPathsFromSharedPreferences + (phoneNumber to realPath))
 
             CoroutineScope(Dispatchers.IO).launch {
                 val existingPhoto = database.contactPhotoDao().getPhotoByPhoneNumber(phoneNumber)
@@ -302,7 +310,6 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         }
     }
 
-
     private fun takePhoto() {
         saveAppState()
         val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
@@ -315,7 +322,6 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     }
 
     private fun saveAppState() {
-        //TODO: add shared prefrences to params
         val sharedPreferences = requireActivity().getSharedPreferences("App_State", AppCompatActivity.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         editor.putString("currentPhoneNumber", currentPhoneNumber)
@@ -331,7 +337,6 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         val sharedPreferences = requireActivity().getSharedPreferences("App_State", AppCompatActivity.MODE_PRIVATE)
         currentPhoneNumber = sharedPreferences.getString("currentPhoneNumber", null)
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)

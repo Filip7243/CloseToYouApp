@@ -22,6 +22,7 @@ import com.example.closetoyou.fragment.MapFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -74,7 +75,7 @@ class HomeActivity : AppCompatActivity() {
 
         // GPS setup
         locationRequest = LocationRequest.Builder(
-            PRIORITY_HIGH_ACCURACY,
+            PRIORITY_BALANCED_POWER_ACCURACY,
             5000
         ).build()
 
@@ -172,22 +173,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkPeopleInRadius() {
-        println("CHECK PEOPLE IN RADIUS!")
-        // TODO: get numbers from db
-        val numbers = listOf(
-            "+48 662-291-021",
-            "+48 661-291-021",
-            "+48 664-291-021",
-            "+48 665-291-021",
-            "+48 666-291-021",
-            "+48 667-291-021",
-            "+48 668-291-021",
-            "+48 669-291-021",
-            "+48 764-291-021",
-            "+48 765-291-021",
-            "+48 962-291-021",
-            ""
-        )
+        val numbers = getContacts()
 
         val gson = Gson()
         val json = gson.toJson(numbers)
@@ -234,8 +220,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun switchToMapFragment() {
-
-
         println("SWITCHING! TO MAP!")
 
         if (ActivityCompat.checkSelfPermission(
@@ -278,12 +262,14 @@ class HomeActivity : AppCompatActivity() {
             }
         }
 
-        fragment = ContactFragment.newInstance("DUPA", "KUPA")
+        fragment = ContactFragment.newInstance(friendsLocalizations)
 
-        val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
-        fragmentTransition.replace(R.id.frameLayout, fragment)
-        fragmentTransition.addToBackStack(null)
-        fragmentTransition.commit()
+        Handler().postDelayed({
+            val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
+            fragmentTransition.replace(R.id.frameLayout, fragment)
+            fragmentTransition.addToBackStack(null)
+            fragmentTransition.commit()
+        }, 1500)
     }
 
     override fun onRequestPermissionsResult(
@@ -292,5 +278,33 @@ class HomeActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    private fun getContacts(): List<String> {
+        val contextResolver = contentResolver
+        val cursor = contextResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+            ),
+            null,
+            null,
+            null
+        )
+
+        val numberList = mutableListOf<String>()
+        cursor?.use {
+            val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(nameIndex)
+                val number = cursor.getString(numberIndex)
+                localContactsMap[number] = name
+                numberList.add(number)
+            }
+        }
+
+        return numberList
     }
 }

@@ -1,6 +1,7 @@
 package com.example.closetoyou
 
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -9,8 +10,11 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.target.Target
 import com.google.android.material.imageview.ShapeableImageView
 import java.io.File
+
 
 class ContactAdapter(
     private val listener: OnChangePhotoListener,
@@ -67,9 +71,15 @@ class ContactAdapter(
             val imgFile = File(photoPath)
             if (imgFile.exists()) {
                 Log.d("ContactAdapter", "Plik istnieje: ${imgFile.absolutePath}")
-                Glide.with(holder.itemView.context)
-                    .load(photoPath)
-                    .into(holder.contactImage)
+                try {
+                    // Code where Glide is used to load an image
+                    Glide.with(holder.itemView.context)
+                        .load(photoPath)
+                        .into(holder.contactImage)
+                } catch (e: GlideException) {
+                    e.logRootCauses("GlideError")
+                }
+
             }
         } else {
             holder.contactImage.setImageResource(R.drawable.background_main)

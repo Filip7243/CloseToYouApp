@@ -3,7 +3,6 @@ package com.example.closetoyou
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
-import com.example.closetoyou.AppDatabase
 
 class MyApp : Application() {
 
