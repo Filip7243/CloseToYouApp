@@ -2,6 +2,8 @@ package com.example.closetoyou
 
 import android.os.Parcel
 import android.os.Parcelable
+import java.time.Duration
+import java.time.Instant
 
 /*
     {
@@ -13,6 +15,7 @@ import android.os.Parcelable
 */
 
 data class Localization(
+    val name: String?,
     val phoneNumber: String?,
     val latitude: Double,
     val longitude: Double,
@@ -20,6 +23,7 @@ data class Localization(
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
+        parcel.readString(),
         parcel.readString(),
         parcel.readDouble(),
         parcel.readDouble(),
@@ -45,6 +49,17 @@ data class Localization(
 
         override fun newArray(size: Int): Array<Localization?> {
             return arrayOfNulls(size)
+        }
+    }
+
+    fun getLastSeenText(): String {
+        val now = Instant.now()
+        val duration = Duration.between(Instant.now(), now)
+        val minutesAgo = duration.toMinutes()
+
+        return when {
+            minutesAgo < 60 -> "$minutesAgo minut temu"
+            else -> "${minutesAgo / 60} godzin temu"
         }
     }
 }

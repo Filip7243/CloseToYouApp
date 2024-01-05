@@ -37,17 +37,11 @@ class MapFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        println("JESTEM W MAPIE!!! onCREATE")
         arguments?.let {
             userLat = it.getDouble(USER_LAT_ARG)
             userLon = it.getDouble(USER_LON_ARG)
             userFriends = it.getParcelableArrayList(USER_FRIENDS_ARG)
         }
-
-        println("MAP FRAGMENT LIST = $userFriends")
-        println("MAP FRAGMENT LON = $userLon")
-        println("MAP FRAGMENT LAT = $userLat")
     }
 
     override fun onCreateView(

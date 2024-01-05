@@ -6,6 +6,7 @@ import android.os.Build.MODEL
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.ContactsContract
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -13,12 +14,12 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import com.example.closetoyou.fragment.ContactFragment
 import com.example.closetoyou.fragment.MapFragment
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationAvailability
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
@@ -46,18 +47,24 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
 
-    private val client = OkHttpClient()
+
 
     private lateinit var progressBar: ProgressBar
 
+    private var localContactsMap = mutableMapOf<String, String>()
+
     companion object {
         const val MAP_PERMISSION_CODE = 2
+        const val PERMISSION_CODE = 1
+        private const val IMAGE_PICK_CODE = 1001
+        private const val CAMERA_REQUEST_CODE = 1002
 
         //        const val API_URL = "http://192.168.43.29:8080/api/v1/localization"
         const val API_URL = "http://192.168.88.87:8080/api/v1/localization"
 
         var userLatitude: Double = 0.0
         var userLongitude: Double = 0.0
+        val client = OkHttpClient()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,27 +79,14 @@ class HomeActivity : AppCompatActivity() {
         ).build()
 
         locationCallback = object : LocationCallback() {
-            override fun onLocationAvailability(p0: LocationAvailability) {
-                super.onLocationAvailability(p0)
-
-                println("ESSUNIA WARIACE!!!!")
-            }
-
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
 
                 val location = locationResult.lastLocation
 
-                Toast.makeText(applicationContext, "CALLBACK!", Toast.LENGTH_SHORT).show()
-                println("WIIITAM!")
-
                 if (location != null) {
                     userLatitude = location.latitude
                     userLongitude = location.longitude
-
-                    updateUserLocalization(location.latitude, location.longitude)
-
-                    checkPeopleInRadius()
                 }
             }
         }
@@ -119,16 +113,11 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         startLocationUpdate()
-        progressBar.visibility = View.VISIBLE
-        Handler().postDelayed({
-            switchToMapFragment()
-        }, 1500)
-        progressBar.visibility = View.GONE
+        switchToMapFragment()
     }
 
     override fun onStop() {
         super.onStop()
-        println("WITAM W ON STOP!")
         stopLocationUpdates()
     }
 
@@ -152,7 +141,7 @@ class HomeActivity : AppCompatActivity() {
         println("UPDATE USER LOCATION")
         val phoneNumber = "users"
 
-        val currentLocalization = Localization(phoneNumber, latitude, longitude, true)
+        val currentLocalization = Localization("NAME", phoneNumber, latitude, longitude, true)
 
         val gson = Gson()
         val json = gson.toJson(currentLocalization)
@@ -269,6 +258,7 @@ class HomeActivity : AppCompatActivity() {
             checkPeopleInRadius()
         }
 
+        Toast.makeText(applicationContext, "Loading data...", Toast.LENGTH_SHORT).show()
         Handler().postDelayed({
             var fragment: Fragment?
             fragment = MapFragment.newInstance(userLatitude, userLongitude, friendsLocalizations)
@@ -282,11 +272,25 @@ class HomeActivity : AppCompatActivity() {
     private fun switchToContactFragment() {
         var fragment: Fragment?
 
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA).forEach {
+            if (ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(it), PERMISSION_CODE)
+            }
+        }
+
         fragment = ContactFragment.newInstance("DUPA", "KUPA")
 
         val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
         fragmentTransition.replace(R.id.frameLayout, fragment)
         fragmentTransition.addToBackStack(null)
         fragmentTransition.commit()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 }
