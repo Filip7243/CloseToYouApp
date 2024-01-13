@@ -1,0 +1,82 @@
+<!-- activity_settings.xml -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/settings_header"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/radioGroup"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="198dp"
+        android:text="Ustawienia"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <ImageButton
+        android:id="@+id/back_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:background="?android:selectableItemBackground"
+        android:contentDescription="powrot"
+        android:src="@android:drawable/ic_media_previous"
+        tools:ignore="TouchTargetSizeCheck" />
+
+    <RadioGroup
+        android:id="@+id/radioGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="186dp"
+            android:layout_height="wrap_content"
+            android:text="Select Radius" />
+
+        <RadioButton
+            android:id="@+id/radioButton1km"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="1 km" />
+
+        <RadioButton
+            android:id="@+id/radioButton3km"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="3 km" />
+
+        <RadioButton
+            android:id="@+id/radioButton5km"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="5 km" />
+
+        <RadioButton
+            android:id="@+id/radioButton10km"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="10 km" />
+
+
+        <!-- Podobne RadioButton dla 3km, 5km, 10km -->
+
+        <RadioButton
+            android:id="@+id/radioButtonNotificationsOff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Wyłącz powiadomienia" />
+    </RadioGroup>
+
+</RelativeLayout>

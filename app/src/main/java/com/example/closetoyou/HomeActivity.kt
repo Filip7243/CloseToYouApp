@@ -1,6 +1,7 @@
 package com.example.closetoyou
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build.MODEL
 import android.os.Bundle
@@ -8,26 +9,31 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
 import android.util.Log
-import android.view.View
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Button
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
+import com.example.closetoyou.ActiveFragment.CONTACT
+import com.example.closetoyou.ActiveFragment.MAP
 import com.example.closetoyou.fragment.ContactFragment
 import com.example.closetoyou.fragment.MapFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
-import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -35,24 +41,22 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
-import org.osmdroid.util.GeoPoint
 import java.io.IOException
 
-@Suppress("DEPRECATION")
 class HomeActivity : AppCompatActivity() {
+
+    // Default fragment (on startup)
+    private var activeFragment: ActiveFragment = MAP
 
     private var friendsLocalizations: ArrayList<Localization> = arrayListOf()
 
-
+    // Localization
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
 
-
-
-    private lateinit var progressBar: ProgressBar
-
     private var localContactsMap = mutableMapOf<String, String>()
+    private var contactPhotos: MutableMap<String, String> = mutableMapOf()
 
     companion object {
         const val MAP_PERMISSION_CODE = 2
@@ -73,10 +77,41 @@ class HomeActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_home)
 
+        val mapBtn = findViewById<Button>(R.id.map_btn)
+        mapBtn.isSelected = true
+
+        val contactBtn = findViewById<Button>(R.id.contact_btn)
+        contactBtn.isSelected = false
+
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
+        val radiusSettings = sharedPreferences.getInt("Radius", 1); // default - 1 KM
+
+        mapBtn.setOnClickListener {
+            if (!mapBtn.isSelected) {
+                mapBtn.isSelected = true
+                contactBtn.isSelected = false
+
+                switchToMapFragment()
+            }
+        }
+
+        contactBtn.setOnClickListener {
+            if (!contactBtn.isSelected) {
+                mapBtn.isSelected = false
+                contactBtn.isSelected = true
+
+                switchToContactFragment()
+            }
+            //TODO: Handler(Looper.getMainLooper()).postDelayed({}, 1000)
+        }
+
         // GPS setup
         locationRequest = LocationRequest.Builder(
-            PRIORITY_BALANCED_POWER_ACCURACY,
-            5000
+            Priority.PRIORITY_HIGH_ACCURACY,
+            3000
         ).build()
 
         locationCallback = object : LocationCallback() {
@@ -94,32 +129,61 @@ class HomeActivity : AppCompatActivity() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        val mapBtn = findViewById<Button>(R.id.map_btn)
-        val contactBtn = findViewById<Button>(R.id.contact_btn)
-        progressBar = findViewById(R.id.progressBar)
-
-        switchToMapFragment()
-
-        mapBtn.setOnClickListener {
-            switchToMapFragment()
-        }
-
-        contactBtn.setOnClickListener {
-            Handler().postDelayed({
-                switchToContactFragment()
-            }, 1000)
-        }
+        loadAvatars()
     }
 
     override fun onResume() {
         super.onResume()
+
+        when (activeFragment) {
+            MAP -> switchToMapFragment()
+            CONTACT -> switchToContactFragment()
+        }
         startLocationUpdate()
-        switchToMapFragment()
     }
 
     override fun onStop() {
         super.onStop()
         stopLocationUpdates()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_home, menu)
+
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+
+                true
+            } else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    fun updateContactPhotosMap(newMap: Map<String, String>) {
+        contactPhotos.putAll(newMap)
+    }
+
+    private fun loadAvatars() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val database = MyApp.getDatabase(this@HomeActivity)
+            val photoMap = database.contactPhotoDao().getAllPhotos()
+                .associateBy({ it.phoneNumber }, { it.photoUri })
+
+            contactPhotos.putAll(photoMap);
+        }
     }
 
     private fun startLocationUpdate() {
@@ -130,7 +194,7 @@ class HomeActivity : AppCompatActivity() {
                 Looper.getMainLooper()
             )
         } catch (e: SecurityException) {
-            println("Security Exception: ${e.message}")
+            Log.d("START_LOCATION_EXC","Security Exception: ${e.message}")
         }
     }
 
@@ -207,21 +271,7 @@ class HomeActivity : AppCompatActivity() {
         })
     }
 
-    private fun addGeoPoint(localization: Localization) {
-        val geoPoint = GeoPoint(localization.latitude, localization.longitude)
-
-//        val marker = Marker(mapView)
-//        marker.position = geoPoint
-//        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-//        marker.icon = ResourcesCompat.getDrawable(resources, loc_pin1, null)
-//        marker.title = "${localization.phoneNumber} is here!"
-//
-//        mapView.overlays.add(marker)
-    }
-
     private fun switchToMapFragment() {
-        println("SWITCHING! TO MAP!")
-
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -235,17 +285,29 @@ class HomeActivity : AppCompatActivity() {
         }
 
         fusedLocationClient.lastLocation.addOnSuccessListener {
-            userLatitude = it.latitude
-            userLongitude = it.longitude
+            if (it != null) {
+                userLatitude = it.latitude
+                userLongitude = it.longitude
 
-            updateUserLocalization(userLatitude, userLongitude)
-            checkPeopleInRadius()
+                updateUserLocalization(userLatitude, userLongitude)
+                checkPeopleInRadius()
+            } else {
+                Toast.makeText(applicationContext, "Localization unaveliable....", Toast.LENGTH_SHORT).show()
+            }
+
         }
+
+        activeFragment = MAP
 
         Toast.makeText(applicationContext, "Loading data...", Toast.LENGTH_SHORT).show()
         Handler().postDelayed({
             var fragment: Fragment?
             fragment = MapFragment.newInstance(userLatitude, userLongitude, friendsLocalizations)
+            fragment.apply {
+                arguments = Bundle().apply {
+                    putSerializable("contactPhotos", HashMap(contactPhotos))
+                }
+            }
             val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
             fragmentTransition.replace(R.id.frameLayout, fragment)
             fragmentTransition.addToBackStack(null)
@@ -254,30 +316,23 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun switchToContactFragment() {
-        var fragment: Fragment?
-
         arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA).forEach {
             if (ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(it), PERMISSION_CODE)
             }
         }
 
-        fragment = ContactFragment.newInstance(friendsLocalizations)
+        activeFragment = CONTACT
 
+        // todo: switch it from hanlder
         Handler().postDelayed({
+            var fragment: Fragment?
+            fragment = ContactFragment.newInstance(friendsLocalizations)
             val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
             fragmentTransition.replace(R.id.frameLayout, fragment)
             fragmentTransition.addToBackStack(null)
             fragmentTransition.commit()
         }, 1500)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     private fun getContacts(): List<String> {
@@ -295,7 +350,8 @@ class HomeActivity : AppCompatActivity() {
 
         val numberList = mutableListOf<String>()
         cursor?.use {
-            val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val nameIndex =
+                cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
             val numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
             while (cursor.moveToNext()) {
                 val name = cursor.getString(nameIndex)
@@ -307,4 +363,8 @@ class HomeActivity : AppCompatActivity() {
 
         return numberList
     }
+}
+
+private enum class ActiveFragment {
+    MAP, CONTACT
 }

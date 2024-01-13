@@ -21,11 +21,9 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -33,27 +31,17 @@ import com.example.closetoyou.R
 import com.example.closetoyou.AppDatabase
 import com.example.closetoyou.ContactAdapter
 import com.example.closetoyou.HomeActivity
-import com.example.closetoyou.HomeActivity.Companion.API_URL
 import com.example.closetoyou.Localization
 import com.example.closetoyou.MyApp
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializer
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
-import java.io.IOException
 import java.time.Instant
 
 // TODO: Rename parameter arguments, choose names that match
@@ -159,15 +147,16 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         try {
             val proj = arrayOf(MediaStore.Images.Media.DATA)
             cursor = context.contentResolver.query(contentUri, proj, null, null, null)
-            val column_index = cursor?.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+            val columnIndex = cursor?.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
             if (cursor != null && cursor.moveToFirst()) {
-                return column_index?.let { cursor.getString(it) }
+                return columnIndex?.let { cursor.getString(it) }
             }
         } catch (e: Exception) {
-            Log.e("ContactActivity", "Błąd podczas uzyskiwania ścieżki: ${e.message}")
+            Log.e("getRealPathFromURI", "ERROR WHEN GETTING REAL PATH: ${e.message}")
         } finally {
             cursor?.close()
         }
+
         return null
     }
 
@@ -191,32 +180,6 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     override fun onDestroy() {
         super.onDestroy()
         coroutineScope.cancel() // Anulowanie wszystkich uruchomionych coroutine
-    }
-
-    private fun sendNumbersToBackend(numberList: List<String>) {
-        println("numery: $numberList")
-        val json = gson.toJson(numberList)
-        val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
-
-        val request = Request.Builder()
-            .url(API_URL)
-            .post(requestBody)
-            .build()
-
-        HomeActivity.client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                e.printStackTrace() // Log the error
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    val type = object : TypeToken<List<Localization>>() {}.type
-                    val contacts: List<Localization> = gson.fromJson(body, type)
-
-                }
-            }
-        })
     }
 
     private fun getContacts() {
@@ -374,7 +337,6 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         Log.d("ContactActivity", "saveImageToGallery - ContentValues utworzone")
 
         return try {
-
             val uri = requireActivity().contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
             Log.d("ContactActivity", "saveImageToGallery - Zdjęcie zapisane, URI: $uri")
             requireActivity().contentResolver.openOutputStream(uri ?: return null).use { out ->
