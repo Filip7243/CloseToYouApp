@@ -2,6 +2,7 @@ package com.example.closetoyou
 
 import android.Manifest
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build.MODEL
 import android.os.Bundle
@@ -58,6 +59,8 @@ class HomeActivity : AppCompatActivity() {
     private var localContactsMap = mutableMapOf<String, String>()
     private val contactPhotos: MutableMap<String, String> = mutableMapOf()
 
+    private lateinit var sharedPreferences: SharedPreferences
+
     companion object {
         const val MAP_PERMISSION_CODE = 2
         const val PERMISSION_CODE = 1
@@ -76,6 +79,8 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_home)
+
+        sharedPreferences = getSharedPreferences(getString(R.string.pin_preferences), MODE_PRIVATE)
 
         val mapBtn = findViewById<Button>(R.id.map_btn)
         mapBtn.isSelected = true
@@ -208,7 +213,9 @@ class HomeActivity : AppCompatActivity() {
 
     private fun updateUserLocalization(latitude: Double, longitude: Double) {
         println("UPDATE USER LOCATION")
-        val phoneNumber = "users"
+        val phoneNumber = sharedPreferences.getString("UserPhoneNumber", "")
+
+        println("PHONE NUMBER = $phoneNumber")
 
         val currentLocalization = Localization("NAME", phoneNumber, latitude, longitude, true)
 

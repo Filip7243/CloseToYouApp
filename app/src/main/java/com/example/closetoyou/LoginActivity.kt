@@ -56,16 +56,22 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.login)
 
         sharedPreferences = getSharedPreferences(getString(pin_preferences), MODE_PRIVATE)
+        val a = sharedPreferences.getString(getString(user_pin), "")
+        val b = sharedPreferences.getString("UserPhoneNumber", "")  //TODO: delte test code
+        println("PIN = $a")
+        println("P NUMBER = $b")
 
         vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
 
-        if (isFirstTimeUser()) {
+        if (isFirstTimeUser() || !hasPhoneNumber()) {
             showSetPinActivity()
+
+            finish()
         }
 
         biometricManager = BiometricManager.from(this)
 
-        if (checkBiometricSupport()) {
+        if (checkBiometricSupport() && (!isFirstTimeUser() || hasPhoneNumber())) {
             showBiometricPrompt()
         }
 
@@ -74,7 +80,11 @@ class LoginActivity : AppCompatActivity() {
         setupButtonClickListeners()
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
@@ -135,7 +145,6 @@ class LoginActivity : AppCompatActivity() {
         println("hasPermission = $hasPermissions")
 
         if (!hasPermissions) {
-            println("ASS!!!!")
             requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE)
         } else {
             val intent = Intent(this, HomeActivity::class.java)
@@ -147,9 +156,19 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun isFirstTimeUser(): Boolean {
+        println("FIRST TIME = ${sharedPreferences.getBoolean(getString(R.string.first_time_user), true)}")
         return sharedPreferences.getBoolean(getString(R.string.first_time_user), true)
     }
 
+    private fun hasPhoneNumber(): Boolean {
+        val number: String? = sharedPreferences.getString("UserPhoneNumber", "")
+
+        if (number != null) {
+            return number.isNotBlank()
+        }
+
+        return false
+    }
     private fun showSetPinActivity() {
         val intent = Intent(this, SetPinActivity::class.java)
         startActivity(intent)

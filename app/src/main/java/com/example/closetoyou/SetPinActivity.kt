@@ -1,5 +1,6 @@
 package com.example.closetoyou
 
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -133,6 +134,8 @@ class SetPinActivity : AppCompatActivity() {
         Toast.makeText(this, "Pin set!", LENGTH_SHORT).show()
         Log.d("SET_PIN_SUCCESS", "PIN set successfully.")
 
+        showSetPhoneNumberActivity()
+
         finish()
     }
 
@@ -147,5 +150,10 @@ class SetPinActivity : AppCompatActivity() {
         val vibrationEffect = VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
 
         vibrator.vibrate(vibrationEffect)
+    }
+
+    private fun showSetPhoneNumberActivity() {
+        val intent = Intent(this, SetPhoneNumberActivity::class.java)
+        startActivity(intent)
     }
 }
