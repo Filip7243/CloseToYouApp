@@ -18,11 +18,9 @@ import java.io.File
 
 class ContactAdapter(
     private val listener: OnChangePhotoListener,
-    private val database: AppDatabase
 ) : RecyclerView.Adapter<ContactAdapter.MyViewHolder>() {
 
     private var contacts: List<Localization> = listOf()
-    private var photos: List<ContactPhoto> = listOf()
     private var photoPaths: Map<String, String> = emptyMap()
 
     fun updateContacts(newContacts: List<Localization>) {
@@ -33,7 +31,6 @@ class ContactAdapter(
     fun setPhotoPaths(paths: Map<String, String>) {
         photoPaths = paths
         notifyDataSetChanged()
-        println("sciezki:" + paths)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
@@ -61,7 +58,6 @@ class ContactAdapter(
         holder.buttonChangeImage.setOnClickListener {
             contact.phoneNumber?.let { it1 -> listener.onChangePhotoRequested(it1) }
         }
-
 
         val photoPath = photoPaths[contact.phoneNumber]
         Log.d("ContactAdapter", "onBindViewHolder - Photo Path: $photoPath")

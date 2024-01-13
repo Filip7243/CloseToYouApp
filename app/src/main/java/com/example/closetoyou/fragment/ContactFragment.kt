@@ -1,6 +1,5 @@
 package com.example.closetoyou.fragment
 
-import com.example.closetoyou.ContactPhoto
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
@@ -17,32 +16,29 @@ import android.os.Environment
 import android.provider.ContactsContract
 import android.provider.MediaStore
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.example.closetoyou.R
 import com.example.closetoyou.AppDatabase
 import com.example.closetoyou.ContactAdapter
+import com.example.closetoyou.ContactPhoto
 import com.example.closetoyou.HomeActivity
 import com.example.closetoyou.Localization
 import com.example.closetoyou.MyApp
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonDeserializer
+import com.example.closetoyou.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Instant
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -60,11 +56,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     private lateinit var database: AppDatabase
     private lateinit var recyclerView: RecyclerView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
-    private val gson: Gson = GsonBuilder()
-        .registerTypeAdapter(Instant::class.java, JsonDeserializer { json, _, _ ->
-            Instant.parse(json.asJsonPrimitive.asString)
-        })
-        .create()
+
     private var localContactsMap = mutableMapOf<String, String>()
     private var currentPhoneNumber: String? = null
 
@@ -91,7 +83,9 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
                 ActivityCompat.requestPermissions(requireActivity(), arrayOf(it), HomeActivity.PERMISSION_CODE)
             }
         }
+
         getContacts()
+        loadPhotosIntoMapAndAdapter()
 
         return rootView
     }
@@ -119,7 +113,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         database = MyApp.getDatabase(requireActivity())
         recyclerView = rootView.findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(rootView.context)
-        recyclerView.adapter = ContactAdapter(this, database)
+        recyclerView.adapter = ContactAdapter(this)
 
         swipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout)
         swipeRefreshLayout.setOnRefreshListener { refreshData() }
@@ -127,14 +121,24 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         loadPhotosIntoAdapter(recyclerView.adapter as ContactAdapter)
     }
 
-
     private fun refreshData() {
         swipeRefreshLayout.isRefreshing = false
     }
 
-    private fun loadPhotosIntoAdapter(adapter: ContactAdapter) {
+    private fun loadPhotosIntoMapAndAdapter() {
         CoroutineScope(Dispatchers.IO).launch {
             val photoMap = database.contactPhotoDao().getAllPhotos().associateBy({ it.phoneNumber }, { it.photoUri })
+            withContext(Dispatchers.Main) {
+                (activity as? HomeActivity)?.updateContactPhotosMap(photoMap)
+                (recyclerView.adapter as? ContactAdapter)?.setPhotoPaths(photoMap)
+            }
+        }
+    }
+
+    private fun loadPhotosIntoAdapter(adapter: ContactAdapter) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val photoMap = database.contactPhotoDao().getAllPhotos()
+                .associateBy({ it.phoneNumber }, { it.photoUri })
             Log.d("ContactActivity", "Wczytane zdjęcia z bazy danych: $photoMap")
             withContext(Dispatchers.Main) {
                 adapter.setPhotoPaths(photoMap)
@@ -169,7 +173,6 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         editor.apply()
     }
 
-
     private fun getPhotoPathsFromSharedPreferences(context: Context): Map<String, String> {
         val sharedPreferences = context.getSharedPreferences("photo_paths", Context.MODE_PRIVATE)
         return sharedPreferences.all as Map<String, String>
@@ -179,7 +182,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        coroutineScope.cancel() // Anulowanie wszystkich uruchomionych coroutine
+        coroutineScope.cancel() // Cancel all active coroutines
     }
 
     private fun getContacts() {
@@ -197,7 +200,8 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
 
         val numberList = mutableListOf<String>()
         cursor?.use {
-            val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val nameIndex =
+                cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
             val numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
             while (cursor.moveToNext()) {
                 val name = cursor.getString(nameIndex)
@@ -224,9 +228,11 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         }
 
         val adapter = recyclerView.adapter as? ContactAdapter
-        adapter?.updateContacts(contactsToShow) ?: Log.e("ContactActivity", "Adapter is not set or wrong type")
+        adapter?.updateContacts(contactsToShow) ?: Log.e(
+            "ContactActivity",
+            "Adapter is not set or wrong type"
+        )
     }
-
 
     override fun onChangePhotoRequested(phoneNumber: String) {
         currentPhoneNumber = phoneNumber
@@ -253,8 +259,12 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         val phoneNumber = currentPhoneNumber ?: return
 
         if (realPath != null) {
-            val photoPathsFromSharedPreferences = getPhotoPathsFromSharedPreferences(requireActivity())
-            savePhotoPathsToSharedPreferences(requireActivity(), photoPathsFromSharedPreferences + (phoneNumber to realPath))
+            val photoPathsFromSharedPreferences =
+                getPhotoPathsFromSharedPreferences(requireActivity())
+            savePhotoPathsToSharedPreferences(
+                requireActivity(),
+                photoPathsFromSharedPreferences + (phoneNumber to realPath)
+            )
 
             CoroutineScope(Dispatchers.IO).launch {
                 val existingPhoto = database.contactPhotoDao().getPhotoByPhoneNumber(phoneNumber)
@@ -285,7 +295,8 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     }
 
     private fun saveAppState() {
-        val sharedPreferences = requireActivity().getSharedPreferences("App_State", AppCompatActivity.MODE_PRIVATE)
+        val sharedPreferences =
+            requireActivity().getSharedPreferences("App_State", AppCompatActivity.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         editor.putString("currentPhoneNumber", currentPhoneNumber)
         editor.apply()
@@ -297,7 +308,8 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     }
 
     private fun restoreAppState() {
-        val sharedPreferences = requireActivity().getSharedPreferences("App_State", AppCompatActivity.MODE_PRIVATE)
+        val sharedPreferences =
+            requireActivity().getSharedPreferences("App_State", AppCompatActivity.MODE_PRIVATE)
         currentPhoneNumber = sharedPreferences.getString("currentPhoneNumber", null)
     }
 
@@ -337,7 +349,10 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         Log.d("ContactActivity", "saveImageToGallery - ContentValues utworzone")
 
         return try {
-            val uri = requireActivity().contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            val uri = requireActivity().contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            )
             Log.d("ContactActivity", "saveImageToGallery - Zdjęcie zapisane, URI: $uri")
             requireActivity().contentResolver.openOutputStream(uri ?: return null).use { out ->
                 if (out != null) {
@@ -352,10 +367,10 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
         }
     }
 
-
     private fun updateRecyclerView() {
         CoroutineScope(Dispatchers.IO).launch {
-            val photoMap = database.contactPhotoDao().getAllPhotos().associateBy({ it.phoneNumber }, { it.photoUri })
+            val photoMap = database.contactPhotoDao().getAllPhotos()
+                .associateBy({ it.phoneNumber }, { it.photoUri })
             withContext(Dispatchers.Main) {
                 (recyclerView.adapter as? ContactAdapter)?.apply {
                     setPhotoPaths(photoMap)

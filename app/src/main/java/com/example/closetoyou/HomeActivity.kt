@@ -56,7 +56,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var locationCallback: LocationCallback
 
     private var localContactsMap = mutableMapOf<String, String>()
-    private var contactPhotos: MutableMap<String, String> = mutableMapOf()
+    private val contactPhotos: MutableMap<String, String> = mutableMapOf()
 
     companion object {
         const val MAP_PERMISSION_CODE = 2
@@ -119,6 +119,7 @@ class HomeActivity : AppCompatActivity() {
                 super.onLocationResult(locationResult)
 
                 val location = locationResult.lastLocation
+                println("WITAM Z LOOPBACK!")
 
                 if (location != null) {
                     userLatitude = location.latitude
@@ -128,6 +129,8 @@ class HomeActivity : AppCompatActivity() {
         }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        startLocationUpdate()
 
         loadAvatars()
     }
@@ -139,6 +142,7 @@ class HomeActivity : AppCompatActivity() {
             MAP -> switchToMapFragment()
             CONTACT -> switchToContactFragment()
         }
+
         startLocationUpdate()
     }
 
@@ -181,8 +185,8 @@ class HomeActivity : AppCompatActivity() {
             val database = MyApp.getDatabase(this@HomeActivity)
             val photoMap = database.contactPhotoDao().getAllPhotos()
                 .associateBy({ it.phoneNumber }, { it.photoUri })
-
-            contactPhotos.putAll(photoMap);
+            println("photo map = $photoMap")
+            contactPhotos.putAll(photoMap)
         }
     }
 
@@ -263,9 +267,13 @@ class HomeActivity : AppCompatActivity() {
                     val typeToken = object : TypeToken<List<Localization>>() {}.type
                     val friendsLocations = gson.fromJson<List<Localization>>(responseStr, typeToken)
 
-                    friendsLocalizations = friendsLocations as ArrayList<Localization>
+                    if (friendsLocalizations.isNotEmpty()) {
+                        friendsLocalizations.clear()
+                    }
 
-                    println("localizations = $friendsLocations")
+                    friendsLocations.forEach {
+                        friendsLocalizations.add(it)
+                    }
                 }
             }
         })
@@ -292,22 +300,17 @@ class HomeActivity : AppCompatActivity() {
                 updateUserLocalization(userLatitude, userLongitude)
                 checkPeopleInRadius()
             } else {
-                Toast.makeText(applicationContext, "Localization unaveliable....", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "Localization unavaliable....", Toast.LENGTH_SHORT).show()
             }
-
         }
 
         activeFragment = MAP
 
         Toast.makeText(applicationContext, "Loading data...", Toast.LENGTH_SHORT).show()
+        println("zdj = $contactPhotos")
         Handler().postDelayed({
             var fragment: Fragment?
-            fragment = MapFragment.newInstance(userLatitude, userLongitude, friendsLocalizations)
-            fragment.apply {
-                arguments = Bundle().apply {
-                    putSerializable("contactPhotos", HashMap(contactPhotos))
-                }
-            }
+            fragment = MapFragment.newInstance(userLatitude, userLongitude, friendsLocalizations, contactPhotos as HashMap<String, String>)
             val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
             fragmentTransition.replace(R.id.frameLayout, fragment)
             fragmentTransition.addToBackStack(null)
