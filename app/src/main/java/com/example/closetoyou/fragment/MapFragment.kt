@@ -161,13 +161,13 @@ class MapFragment : Fragment() {
     }
 
     private fun getRoundedCornerBitmap(bitmap: Bitmap, pixels: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
+        val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
 
-        var color = 0xff424242.toInt()
+        val color = 0xff424242.toInt()
         val paint = Paint().apply {
             isAntiAlias = true
-            color = color
+            this.color = color
         }
         val rect = Rect(0, 0, bitmap.width, bitmap.height)
         val rectF = RectF(rect)
@@ -179,8 +179,9 @@ class MapFragment : Fragment() {
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
         canvas.drawBitmap(bitmap, rect, rect, paint)
 
-        return bitmap
+        return output
     }
+
 
     companion object {
         /**
