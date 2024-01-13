@@ -51,6 +51,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
+import java.time.Instant
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -81,7 +82,7 @@ class HomeActivity : AppCompatActivity() {
         private const val CAMERA_REQUEST_CODE = 1002
 
         //        const val API_URL = "http://192.168.43.29:8080/api/v1/localization"
-        const val API_URL = "http://192.168.88.87:8080/api/v1/localization"
+        const val API_URL = "http://192.168.42.40:8080/api/v1/localization"
 
         var userLatitude: Double = 0.0
         var userLongitude: Double = 0.0
@@ -236,8 +237,8 @@ class HomeActivity : AppCompatActivity() {
         val phoneNumber = sharedPreferences.getString("UserPhoneNumber", "")
 
         println("PHONE NUMBER = $phoneNumber")
-
-        val currentLocalization = Localization("NAME", phoneNumber, latitude, longitude, true)
+        val currentIsoDateTime = Instant.now().toString()
+        val currentLocalization = Localization("NAME", phoneNumber, latitude, longitude, true, currentIsoDateTime)
 
         val gson = Gson()
         val json = gson.toJson(currentLocalization)

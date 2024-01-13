@@ -223,6 +223,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
                 it.latitude,
                 it.longitude,
                 it.hasPermission,
+                it.updatedAt
             )
             else null
         }

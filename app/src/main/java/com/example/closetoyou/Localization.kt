@@ -19,7 +19,8 @@ data class Localization(
     val phoneNumber: String?,
     val latitude: Double,
     val longitude: Double,
-    val hasPermission: Boolean
+    val hasPermission: Boolean,
+    val updatedAt: String?
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
@@ -27,7 +28,8 @@ data class Localization(
         parcel.readString(),
         parcel.readDouble(),
         parcel.readDouble(),
-        parcel.readBoolean()
+        parcel.readBoolean(),
+        parcel.readString()
     ) {
     }
 
@@ -52,14 +54,22 @@ data class Localization(
         }
     }
 
+    fun getUpdatedAtAsInstant(): Instant {
+        return Instant.parse(updatedAt) // Konwersja String na Instant
+    }
+
     fun getLastSeenText(): String {
         val now = Instant.now()
-        val duration = Duration.between(Instant.now(), now)
+        val updatedAtInstant = getUpdatedAtAsInstant()
+        val duration = Duration.between(updatedAtInstant, now)
         val minutesAgo = duration.toMinutes()
+        val hoursAgo = duration.toHours()
 
         return when {
             minutesAgo < 60 -> "$minutesAgo minut temu"
-            else -> "${minutesAgo / 60} godzin temu"
+            hoursAgo < 24 -> "$hoursAgo godzin temu"
+            else -> "${hoursAgo / 24} dni temu"
         }
     }
+
 }
