@@ -21,6 +21,7 @@ class SettingsActivity : AppCompatActivity() {
 
         val backButton = findViewById<ImageButton>(R.id.back_button)
         backButton.setOnClickListener {
+
             finish()
         }
 
@@ -35,10 +36,10 @@ class SettingsActivity : AppCompatActivity() {
 
         radioGroup.setOnCheckedChangeListener { _, checkedId ->
             val radius = when (checkedId) {
-                R.id.radioButton1km -> 1
-                R.id.radioButton3km -> 3
-                R.id.radioButton5km -> 5
-                R.id.radioButton10km -> 10
+                R.id.radioButton1km -> 1 * 1000
+                R.id.radioButton3km -> 3 * 1000
+                R.id.radioButton5km -> 5 * 1000
+                R.id.radioButton10km -> 10 * 1000
                 else -> 0 // Notifications off
             }
 
@@ -49,7 +50,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun loadSettings() {
         val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
 
-        when (sharedPreferences.getInt("Radius", 1)) { // Default to 1km
+        when (sharedPreferences.getInt("Radius", 1000)) { // Default to 1km
             0 -> radioButtonNotificationsOff.isChecked = true
             1 -> radioButton1km.isChecked = true
             3 -> radioButton3km.isChecked = true

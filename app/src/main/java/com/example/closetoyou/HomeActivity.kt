@@ -1,9 +1,13 @@
 package com.example.closetoyou
 
 import android.Manifest
+import android.Manifest.permission.POST_NOTIFICATIONS
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build.MODEL
 import android.os.Bundle
 import android.os.Handler
@@ -17,6 +21,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationCompat.PRIORITY_DEFAULT
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
@@ -24,6 +31,7 @@ import com.example.closetoyou.ActiveFragment.CONTACT
 import com.example.closetoyou.ActiveFragment.MAP
 import com.example.closetoyou.fragment.ContactFragment
 import com.example.closetoyou.fragment.MapFragment
+import com.google.android.gms.base.R.drawable.common_google_signin_btn_icon_dark_normal
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -43,6 +51,10 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class HomeActivity : AppCompatActivity() {
 
@@ -58,6 +70,7 @@ class HomeActivity : AppCompatActivity() {
 
     private var localContactsMap = mutableMapOf<String, String>()
     private val contactPhotos: MutableMap<String, String> = mutableMapOf()
+    private val friendsDistance: MutableMap<Localization, Double> = mutableMapOf()
 
     private lateinit var sharedPreferences: SharedPreferences
 
@@ -73,6 +86,12 @@ class HomeActivity : AppCompatActivity() {
         var userLatitude: Double = 0.0
         var userLongitude: Double = 0.0
         val client = OkHttpClient()
+
+        var radius: Double = 0.0
+
+        var notificationId = 0
+
+        const val CHANNEL_ID = "CLOSE_TO_YOU_CHANNEL"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,8 +110,7 @@ class HomeActivity : AppCompatActivity() {
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-        val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
-        val radiusSettings = sharedPreferences.getInt("Radius", 1); // default - 1 KM
+        println("HOME RADIUS = $radius")
 
         mapBtn.setOnClickListener {
             if (!mapBtn.isSelected) {
@@ -177,7 +195,9 @@ class HomeActivity : AppCompatActivity() {
                 startActivity(intent)
 
                 true
-            } else -> super.onOptionsItemSelected(item)
+            }
+
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
@@ -203,7 +223,7 @@ class HomeActivity : AppCompatActivity() {
                 Looper.getMainLooper()
             )
         } catch (e: SecurityException) {
-            Log.d("START_LOCATION_EXC","Security Exception: ${e.message}")
+            Log.d("START_LOCATION_EXC", "Security Exception: ${e.message}")
         }
     }
 
@@ -280,7 +300,26 @@ class HomeActivity : AppCompatActivity() {
 
                     friendsLocations.forEach {
                         friendsLocalizations.add(it)
+
+                        val distance =
+                            countDistanceBasedOnCurrentLocalization(
+                                userLatitude,
+                                userLongitude,
+                                it.latitude,
+                                it.longitude
+                            )
+
+                        friendsDistance[it] = distance
                     }
+
+                    val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
+                    radius = sharedPreferences.getInt("Radius", 1000).toDouble() // default - 1 KM
+
+                    val filteredLocations: List<Localization> = friendsDistance.filter { it.value <= radius }
+                        .map { it.key }
+                        .toList()
+
+                    showNotification(filteredLocations)
                 }
             }
         })
@@ -307,7 +346,11 @@ class HomeActivity : AppCompatActivity() {
                 updateUserLocalization(userLatitude, userLongitude)
                 checkPeopleInRadius()
             } else {
-                Toast.makeText(applicationContext, "Localization unavaliable....", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    applicationContext,
+                    "Localization unavaliable....",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -317,7 +360,12 @@ class HomeActivity : AppCompatActivity() {
         println("zdj = $contactPhotos")
         Handler().postDelayed({
             var fragment: Fragment?
-            fragment = MapFragment.newInstance(userLatitude, userLongitude, friendsLocalizations, contactPhotos as HashMap<String, String>)
+            fragment = MapFragment.newInstance(
+                userLatitude,
+                userLongitude,
+                friendsLocalizations,
+                contactPhotos as HashMap<String, String>
+            )
             val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
             fragmentTransition.replace(R.id.frameLayout, fragment)
             fragmentTransition.addToBackStack(null)
@@ -372,6 +420,62 @@ class HomeActivity : AppCompatActivity() {
         }
 
         return numberList
+    }
+
+    private fun countDistanceBasedOnCurrentLocalization(
+        userLat: Double,
+        userLon: Double,
+        friendLat: Double,
+        friendLon: Double
+    ): Double {
+        val r = 6371e3 // earth radius
+        val fi1 = userLat * Math.PI / 180
+        val fi2 = friendLat * Math.PI / 180
+        val deltaFi1 = (friendLat - userLat) * Math.PI / 180
+        val deltaLambda = (friendLon - userLon) * Math.PI / 180
+
+        val a = sin(deltaFi1 / 2) * sin(deltaFi1 / 2) +
+                cos(fi1) * cos(fi2) *
+                sin(deltaLambda / 2) * sin(deltaLambda / 2)
+
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        return r * c // return in meters
+    }
+
+    private fun showNotification(friends: List<Localization>) {
+        createNotificationChannel()
+
+        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+            .setContentTitle("CloseToYou")
+            .setContentText("You have ${friends.size} friends close to you!")
+            .setSmallIcon(
+                common_google_signin_btn_icon_dark_normal
+            )
+            .setPriority(PRIORITY_DEFAULT)
+            .setVibrate(longArrayOf(1000, 1000))
+
+        with(NotificationManagerCompat.from(applicationContext)) {
+            if (ActivityCompat.checkSelfPermission(
+                    applicationContext,
+                    POST_NOTIFICATIONS
+                ) == PERMISSION_GRANTED
+            ) {
+                notify(notificationId++, notification.build())
+            }
+        }
+    }
+
+    private fun createNotificationChannel() {
+        val name = "Close To You Channel"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+            description = "Channel of closest user's friends"
+        }
+
+        val notificationManager: NotificationManager =
+            applicationContext.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 }
 

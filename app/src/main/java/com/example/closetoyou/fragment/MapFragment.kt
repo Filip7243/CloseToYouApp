@@ -1,8 +1,10 @@
 package com.example.closetoyou.fragment
 
+import android.content.Context.MODE_PRIVATE
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
@@ -18,6 +20,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
+import com.example.closetoyou.HomeActivity
 import com.example.closetoyou.Localization
 import com.example.closetoyou.R
 import org.osmdroid.config.Configuration
@@ -25,6 +28,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polygon
 
 private const val USER_LAT_ARG = "userLat"
 private const val USER_LON_ARG = "userLon"
@@ -77,6 +81,13 @@ class MapFragment : Fragment() {
         userMarker.icon = ResourcesCompat.getDrawable(resources, R.drawable.loc_pin1, null)
         mapView.overlays.add(userMarker)
 
+        val sharedPreferences = requireActivity().getSharedPreferences("AppSettings", MODE_PRIVATE)
+        val radius = sharedPreferences.getInt("Radius", 1000).toDouble() // default - 1 KM
+
+        println("MAP RADIUS = ${HomeActivity.radius}")
+
+        addCircle(mapView, point!!, radius)
+
         userFriends?.forEach { loc ->
             println(loc)
             val point = GeoPoint(loc.latitude, loc.longitude)
@@ -111,6 +122,27 @@ class MapFragment : Fragment() {
         }
 
         return rootView
+    }
+
+    private fun addCircle(mapView: MapView, center: GeoPoint, radius: Double) {
+        val circle = Polygon()
+        val points = ArrayList<GeoPoint>()
+
+        val numPoints = 100
+        for (i in 0 until numPoints) {
+            val angle = (i.toDouble() / numPoints.toDouble()) * 2.0 * Math.PI
+            val lat = center.latitude + radius / 111111.0 * Math.sin(angle)
+            val lon = center.longitude + radius / (111111.0 * Math.cos(center.latitude * Math.PI / 180.0)) * Math.cos(angle)
+            points.add(GeoPoint(lat, lon))
+        }
+
+        circle.points = points
+        circle.strokeColor = Color.BLUE
+        circle.strokeWidth = 2F
+        circle.fillColor = Color.argb(75, 0, 0, 255)
+
+        mapView.overlayManager.add(circle)
+        mapView.postInvalidate()
     }
 
     override fun onResume() {
