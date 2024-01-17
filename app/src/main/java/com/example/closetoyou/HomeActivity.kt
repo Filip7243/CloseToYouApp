@@ -81,8 +81,8 @@ class HomeActivity : AppCompatActivity() {
         private const val IMAGE_PICK_CODE = 1001
         private const val CAMERA_REQUEST_CODE = 1002
 
-        //        const val API_URL = "http://192.168.43.29:8080/api/v1/localization"
-        const val API_URL = "http://192.168.42.40:8080/api/v1/localization"
+        const val API_URL = "http://192.168.43.29:8080/api/v1/localization"
+//        const val API_URL = "http://192.168.42.40:8080/api/v1/localization"
 
         var userLatitude: Double = 0.0
         var userLongitude: Double = 0.0
@@ -238,7 +238,8 @@ class HomeActivity : AppCompatActivity() {
 
         println("PHONE NUMBER = $phoneNumber")
         val currentIsoDateTime = Instant.now().toString()
-        val currentLocalization = Localization("NAME", phoneNumber, latitude, longitude, true, currentIsoDateTime)
+        val currentLocalization =
+            Localization("NAME", phoneNumber, latitude, longitude, true, currentIsoDateTime)
 
         val gson = Gson()
         val json = gson.toJson(currentLocalization)
@@ -268,8 +269,31 @@ class HomeActivity : AppCompatActivity() {
         })
     }
 
+    private fun parseNumbers(numbers: List<String>): List<String> {
+        val result = arrayListOf<String>()
+        val userPhoneNumber = sharedPreferences.getString("UserPhoneNumber", "");
+
+        numbers.forEach {
+            var cleanedNumber = it.replace(" ", "")
+                .replace("-", "")
+
+            if (!cleanedNumber.startsWith("+48")) {
+                cleanedNumber = "+48$cleanedNumber"
+            }
+
+            if (userPhoneNumber != cleanedNumber) {
+                result.add(cleanedNumber)
+            }
+        }
+
+        return result
+    }
+
     private fun checkPeopleInRadius() {
-        val numbers = getContacts()
+        val contacts = getContacts()
+        val numbers = parseNumbers(contacts)
+
+        println("NUMERY PO SPARSOWANIU KURCZA TEJ: $numbers")
 
         val gson = Gson()
         val json = gson.toJson(numbers)
@@ -295,6 +319,8 @@ class HomeActivity : AppCompatActivity() {
                     val typeToken = object : TypeToken<List<Localization>>() {}.type
                     val friendsLocations = gson.fromJson<List<Localization>>(responseStr, typeToken)
 
+                    println("FRIENDS LOCATIONS = $friendsLocations")
+
                     if (friendsLocalizations.isNotEmpty()) {
                         friendsLocalizations.clear()
                     }
@@ -316,11 +342,14 @@ class HomeActivity : AppCompatActivity() {
                     val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
                     radius = sharedPreferences.getInt("Radius", 1000).toDouble() // default - 1 KM
 
-                    val filteredLocations: List<Localization> = friendsDistance.filter { it.value <= radius }
-                        .map { it.key }
-                        .toList()
+                    val filteredLocations: List<Localization> =
+                        friendsDistance.filter { it.value <= radius }
+                            .map { it.key }
+                            .toList()
 
-                    showNotification(filteredLocations)
+                    if (filteredLocations.isNotEmpty()) {
+                        showNotification(filteredLocations)
+                    }
                 }
             }
         })
@@ -386,6 +415,7 @@ class HomeActivity : AppCompatActivity() {
         // todo: switch it from hanlder
         Handler().postDelayed({
             var fragment: Fragment?
+            println("LOCALIZATION TUTAJ ELEGANCKO: $friendsLocalizations")
             fragment = ContactFragment.newInstance(friendsLocalizations)
             val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
             fragmentTransition.replace(R.id.frameLayout, fragment)
@@ -419,6 +449,8 @@ class HomeActivity : AppCompatActivity() {
                 numberList.add(number)
             }
         }
+
+        println("LIsta numeró kontaktow = $numberList")
 
         return numberList
     }

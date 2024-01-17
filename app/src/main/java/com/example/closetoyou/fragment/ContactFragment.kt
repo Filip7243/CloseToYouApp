@@ -211,6 +211,7 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
             }
         }
 
+        println("USER FRIEDNS FROM CONTACTS = $userFriends")
         displayContacts(userFriends as ArrayList<Localization>)
     }
 
