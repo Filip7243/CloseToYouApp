@@ -47,8 +47,7 @@ class LoginActivity : AppCompatActivity() {
             READ_EXTERNAL_STORAGE,
             WRITE_EXTERNAL_STORAGE,
             CAMERA,
-            ACCESS_COARSE_LOCATION,
-            ACCESS_BACKGROUND_LOCATION
+            ACCESS_COARSE_LOCATION
         )
     }
 
@@ -71,9 +70,9 @@ class LoginActivity : AppCompatActivity() {
             finish()
         }
 
-        biometricManager = BiometricManager.from(this)
-
-        if (checkBiometricSupport() && (!isFirstTimeUser() || hasPhoneNumber())) {
+        if (checkBiometricSupport() && (!isFirstTimeUser() && hasPhoneNumber())) {
+            println("UUUULUNG!")
+            biometricManager = BiometricManager.from(this)
             showBiometricPrompt()
         }
 
@@ -89,6 +88,8 @@ class LoginActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
+        var isPermitted = true
+
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             if (grantResults.isNotEmpty()) {
                 for (i in grantResults.indices) {
@@ -101,11 +102,23 @@ class LoginActivity : AppCompatActivity() {
                         startActivity(intent)
                         Toast.makeText(this, "All permissions are required!", Toast.LENGTH_SHORT).show()
                         println("PERMISSION IS NOT GRATED")
+                        isPermitted = false
                         break
                     }
                 }
+
+                if (isPermitted) {
+                    showHome()
+                }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        edtPassword.setText("");
+        enteredPin.clear()
     }
 
     private fun setupButtonClickListeners() {
@@ -139,6 +152,10 @@ class LoginActivity : AppCompatActivity() {
         if (enteredPin.length == 4) {
             val savedPin = sharedPreferences.getString(getString(user_pin), "")
             if (enteredPin.toString() == savedPin) {
+                if (!hasPermissions()) {
+                    requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE)
+                }
+
                 showHome()
             } else {
                 restartPinEntry()
