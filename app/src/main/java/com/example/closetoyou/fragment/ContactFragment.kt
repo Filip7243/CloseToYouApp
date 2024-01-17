@@ -206,8 +206,14 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
             while (cursor.moveToNext()) {
                 val name = cursor.getString(nameIndex)
                 val number = cursor.getString(numberIndex)
-                localContactsMap[number] = name
-                numberList.add(number)
+                var cleanedNumber = number.replace(" ", "")
+                    .replace("-", "")
+
+                if (!cleanedNumber.startsWith("+48")) {
+                    cleanedNumber = "+48$cleanedNumber"
+                }
+                localContactsMap[cleanedNumber] = name
+                numberList.add(cleanedNumber)
             }
         }
 
@@ -216,6 +222,8 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
     }
 
     private fun displayContacts(contactsFromBackend: List<Localization>) {
+        println("USER FRIEDNS FROM CONTACTS ci[a = $userFriends")
+        println("USER FRIEDNS FROM CONTACTS ci[a2 = $userFriends")
         val contactsToShow = contactsFromBackend.mapNotNull {
             val name = localContactsMap[it.phoneNumber]
             if (name != null && it.hasPermission) Localization(
@@ -228,6 +236,8 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
             )
             else null
         }
+
+        println("ESSUNIA BYKU = $contactsToShow")
 
         val adapter = recyclerView.adapter as? ContactAdapter
         adapter?.updateContacts(contactsToShow) ?: Log.e(

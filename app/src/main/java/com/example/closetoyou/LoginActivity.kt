@@ -10,9 +10,11 @@ import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.net.Uri
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.Settings
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
@@ -39,7 +41,7 @@ class LoginActivity : AppCompatActivity() {
 
     companion object {
         private const val PERMISSIONS_REQUEST_CODE = 1
-        private val REQUIRED_PERMISSIONS = arrayOf(
+        val REQUIRED_PERMISSIONS = arrayOf(
             READ_CONTACTS,
             WRITE_CONTACTS,
             READ_EXTERNAL_STORAGE,
@@ -91,13 +93,17 @@ class LoginActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty()) {
                 for (i in grantResults.indices) {
                     if (grantResults[i] != PERMISSION_GRANTED) {
-                        // Permission is denied. Handle the failure.
+                        val intent = Intent().apply {
+                            action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                            val uri = Uri.fromParts("package", packageName, null)
+                            data = uri
+                        }
+                        startActivity(intent)
+                        Toast.makeText(this, "All permissions are required!", Toast.LENGTH_SHORT).show()
                         println("PERMISSION IS NOT GRATED")
+                        break
                     }
                 }
-
-                val intent = Intent(this, HomeActivity::class.java)
-                startActivity(intent)
             }
         }
     }
@@ -149,10 +155,12 @@ class LoginActivity : AppCompatActivity() {
         } else {
             val intent = Intent(this, HomeActivity::class.java)
             startActivity(intent)
-        }
 
-        Toast.makeText(this, "Welcome!", Toast.LENGTH_SHORT).show()
-        Log.d("ENTER_PIN_SUCCESS", "Correct PIN")
+            Toast.makeText(this, "Welcome!", Toast.LENGTH_SHORT).show()
+            Log.d("ENTER_PIN_SUCCESS", "Correct PIN")
+
+            finish()
+        }
     }
 
     private fun isFirstTimeUser(): Boolean {
@@ -220,6 +228,7 @@ class LoginActivity : AppCompatActivity() {
 
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
+                    println("WITAM Z SUCCEDE")
                     showHome()
                 }
 
@@ -244,6 +253,8 @@ class LoginActivity : AppCompatActivity() {
     private fun hasPermissions(): Boolean {
         for (permission in REQUIRED_PERMISSIONS) {
             if (checkSelfPermission(this, permission) != PERMISSION_GRANTED) {
+                println("ESSUNIA YUTA FIUTA $permission")
+
                 return false
             }
         }

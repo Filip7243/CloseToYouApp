@@ -8,11 +8,13 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.net.Uri
 import android.os.Build.MODEL
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
+import android.provider.Settings
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -159,15 +161,34 @@ class HomeActivity : AppCompatActivity() {
         loadAvatars()
     }
 
+    private fun hasPermissions(): Boolean {
+        for (permission in LoginActivity.REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PERMISSION_GRANTED) {
+                println("ESSUNIA YUTA FIUTA")
+                return false
+            }
+        }
+        return true
+    }
+
     override fun onResume() {
         super.onResume()
+        println("DUUUPA!")
+        if (hasPermissions()) {
+            when (activeFragment) {
+                MAP -> switchToMapFragment()
+                CONTACT -> switchToContactFragment()
+            }
 
-        when (activeFragment) {
-            MAP -> switchToMapFragment()
-            CONTACT -> switchToContactFragment()
+            startLocationUpdate()
+        } else {
+            val intent = Intent().apply {
+                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                val uri = Uri.fromParts("package", packageName, null)
+                data = uri
+            }
+            startActivity(intent)
         }
-
-        startLocationUpdate()
     }
 
     override fun onStop() {
@@ -181,6 +202,7 @@ class HomeActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        println("ESSUNIA BYCZKI MOJE!!!!")
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -347,7 +369,10 @@ class HomeActivity : AppCompatActivity() {
                             .map { it.key }
                             .toList()
 
+                    println("FILTERED TUTAJ YYEAH = $filteredLocations")
+
                     if (filteredLocations.isNotEmpty()) {
+
                         showNotification(filteredLocations)
                     }
                 }
