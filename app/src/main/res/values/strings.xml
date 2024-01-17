@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">CloseToYou</string>
+
+    <string name="txt_enter">Enter PIN code</string>
+    <string name="btn_one">1</string>
+    <string name="btn_two">2</string>
+    <string name="btn_three">3</string>
+    <string name="btn_four">4</string>
+    <string name="btn_five">5</string>
+    <string name="btn_six">6</string>
+    <string name="btn_seven">7</string>
+    <string name="btn_eight">8</string>
+    <string name="btn_nine">9</string>
+    <string name="btn_zero">0</string>
+    <string name="btn_back">back</string>
+
+    <string name="pin_preferences">CloseToYouPreferences</string>
+    <string name="user_pin">UserPin</string>
+    <string name="first_time_user">IsFirstTimeUser</string>
+    <string name="pin_set">Pin set!</string>
+    <string name="pin_set_err">Pins are not equal!</string>
+    <string name="enter_pin_again">Enter PIN again!</string>
+    <string name="confirm_pin_txt">Confirm PIN</string>
+    <string name="enter_pin_again_err">Bad PIN, try again!</string>
+
+    <string name="log_pin_attempt_err">SET_PIN_ATTEMPT_FAILED</string>
+    <string name="log_pin_attempt_success">SET_PIN_ATTEMPT_SUCCESS</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
