@@ -1,5 +1,6 @@
 package com.example.closetoyouapp
 
+import android.Manifest
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.CAMERA
@@ -10,19 +11,32 @@ import android.Manifest.permission.WRITE_CONTACTS
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.ContactsContract
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
+import androidx.core.app.ActivityCompat.checkSelfPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import com.example.closetoyouapp.ActiveFragment.CONTACT
 import com.example.closetoyouapp.ActiveFragment.MAP
+import com.example.closetoyouapp.fragment.MapFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -31,6 +45,9 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -47,24 +64,25 @@ import kotlin.math.sqrt
 
 class HomeActivity : AppCompatActivity() {
 
-    //Default fragment
+    // Default fragment
     private var activeFragment: ActiveFragment = MAP
 
-    //Friends Info
+    // Friends Info
     private var friendsLocalization: ArrayList<Localization> = arrayListOf()
-    val localContactsMap = mutableMapOf<String, String>()
+    private val localContactsMap = mutableMapOf<String, String>()
     private val friendsDistance: MutableMap<Localization, Double> = mutableMapOf()
     private val contactPhotos: MutableMap<String, String> = mutableMapOf()
+    private val filteredLocations = mutableListOf<Localization>()
 
     // User preferences
     private lateinit var sharedPreferences: SharedPreferences
 
-    //Phone Localization (google API)
+    // Phone Localization (google API)
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
 
-    //Permissions
+    // Permissions
     private val PERMISSIONS_REQUEST_CODE = 100
     private val REQUIRED_PERMISSIONS = arrayOf(
         READ_CONTACTS,
@@ -82,31 +100,84 @@ class HomeActivity : AppCompatActivity() {
     private var radius: Double = 0.0
 
     // API
-    private val API_URL = "http://192.168.43.29:8080/api/v1/localization"
+    private val API_URL = "http://192.168.88.87:8080/api/v1/localization"
+
+    //    private val API_URL = "http://192.168.43.29:8080/api/v1/localization"
     private val client = OkHttpClient()
 
-    //Notifications
-    val CHANNEL_ID = "CLOSE_TO_YOU_CHANNEL"
-    var notificationId = 0
+
+    // Notifications
+    private val CHANNEL_ID = "CLOSE_TO_YOU_CHANNEL"
+    private var notificationId = 0
+    private val handler = Handler(Looper.getMainLooper())
+    private val timeInterval: Long = 60000 // 5 min
+    private var filteredListSize = 0
+    private val runnable = object : Runnable {
+        override fun run() {
+            val currentFilteredListSize = filteredLocations.size
+
+            if (filteredLocations.isNotEmpty() && currentFilteredListSize != filteredListSize) {
+                showNotification(filteredLocations)
+
+                filteredListSize = currentFilteredListSize
+            }
+            handler.postDelayed(this, timeInterval)
+        }
+    }
+
+    init {
+        handler.postDelayed(runnable, timeInterval)
+    }
+
+    var firstTimeLoaded = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_home)
 
+        val mapBtn = findViewById<Button>(R.id.map_btn)
+        mapBtn.isSelected = true
+
+        val contactBtn = findViewById<Button>(R.id.contact_btn)
+        contactBtn.isSelected = false
+
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        mapBtn.setOnClickListener {
+            if (!mapBtn.isSelected) {
+                mapBtn.isSelected = true
+                contactBtn.isSelected = false
+
+                switchToMapFragment()
+            }
+        }
+//todo: contact phots!
+        contactBtn.setOnClickListener {
+            if (!contactBtn.isSelected) {
+                mapBtn.isSelected = false
+                contactBtn.isSelected = true
+
+//                switchToContactFragment()
+            }
+        }
+
         sharedPreferences = getSharedPreferences("USER_PREFERENCES", MODE_PRIVATE)
 
         locationRequest = LocationRequest()
-        locationRequest.interval = 10000
-        locationRequest.fastestInterval = 7000
+        locationRequest.interval = 3000
+        locationRequest.fastestInterval = 1200
         locationRequest.priority = PRIORITY_HIGH_ACCURACY
+
+
+        Toast.makeText(applicationContext, "Loading data...", Toast.LENGTH_LONG).show()
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
 
                 val location = locationResult.lastLocation // todo; intenret policy
-                println("WITAM Z LOOPBACK!")
 
                 if (location != null) {
                     userLatitude = location.latitude
@@ -114,19 +185,25 @@ class HomeActivity : AppCompatActivity() {
 
                     sendPutRequest(userLatitude, userLongitude)
                     sendPostRequest()
+
+                    if (firstTimeLoaded == 0) {
+                        switchToMapFragment()
+
+                        firstTimeLoaded = 1;
+                    }
                 }
             }
         }
 
         updateGPS()
-//        loadAvatars()
+        loadAvatars()
     }
 
     private fun startLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(
+        if (checkSelfPermission(
                 this,
                 ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+            ) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(
                 this,
                 ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
@@ -148,13 +225,21 @@ class HomeActivity : AppCompatActivity() {
     private fun updateGPS() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        if (ActivityCompat.checkSelfPermission(
+        if (checkSelfPermission(
                 this,
                 ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             fusedLocationClient.lastLocation.addOnSuccessListener {
-                updateUserLocalization(it)
+                if (it != null) {
+                    updateUserLocalization(it)
+                } else {
+                    Toast.makeText(
+                        applicationContext,
+                        "Localization unavaliable....",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -170,15 +255,15 @@ class HomeActivity : AppCompatActivity() {
         println("UPDATED $userLatitude, $userLongitude")
     }
 
-//    private fun loadAvatars() {
-//        CoroutineScope(Dispatchers.IO).launch {
-//            val database = MyApp.getDatabase(this@HomeActivity)
-//            val photoMap = database.contactPhotoDao().getAllPhotos()
-//                .associateBy({ it.phoneNumber }, { it.photoUri })
-//            println("photo map = $photoMap")
-//            contactPhotos.putAll(photoMap)
-//        }
-//    }
+    private fun loadAvatars() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val database = MyApp.getDatabase(this@HomeActivity)
+            val photoMap = database.contactPhotoDao().getAllPhotos()
+                .associateBy({ it.phoneNumber }, { it.photoUri })
+            println("photo map = $photoMap")
+            contactPhotos.putAll(photoMap)
+        }
+    }
 
     private fun sendPutRequest(latitude: Double, longitude: Double) {
         println("UPDATE USER LOCATION")
@@ -265,16 +350,17 @@ class HomeActivity : AppCompatActivity() {
 
                     radius = sharedPreferences.getInt("RADIUS", 1000).toDouble() // default - 1 KM
 
-                    val filteredLocations: List<Localization> =
+                    filteredLocations.clear()
+                    filteredLocations.addAll(
                         friendsDistance.filter { it.value <= radius }
                             .map { it.key }
                             .toList()
+                    )
 
-                    println("FILTERED TUTAJ YYEAH = $filteredLocations")
-
-                    if (filteredLocations.isNotEmpty()) {
+                    if (firstTimeLoaded == 0) {
                         showNotification(filteredLocations)
                     }
+
                 }
             }
         })
@@ -355,7 +441,7 @@ class HomeActivity : AppCompatActivity() {
             .setVibrate(longArrayOf(1000, 1000))
 
         with(NotificationManagerCompat.from(applicationContext)) {
-            if (ActivityCompat.checkSelfPermission(
+            if (checkSelfPermission(
                     applicationContext,
                     POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED
@@ -377,18 +463,56 @@ class HomeActivity : AppCompatActivity() {
         notificationManager.createNotificationChannel(channel)
     }
 
-    override fun onResume() {
-        super.onResume()
+    private fun switchToMapFragment() {
+        //todo: jesli to jest pierwszy raz to wyslij requesta zeby znajomych pokazac!
+        if (checkSelfPermission(
+                this,
+                ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(
+                this,
+                ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            checkAndRequestPermissions()
+            return
+        }
 
-        checkAndRequestPermissions()
-        startLocationUpdates()
+        activeFragment = MAP
+
+        if (firstTimeLoaded == 1) {
+            Toast.makeText(applicationContext, "Loading data...", Toast.LENGTH_LONG).show()
+        }
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            var fragment: Fragment?
+            fragment = MapFragment.newInstance(
+                userLatitude,
+                userLongitude,
+                friendsLocalization,
+                contactPhotos as HashMap<String, String>
+            )
+            val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
+            fragmentTransition.replace(R.id.frameLayout, fragment)
+            fragmentTransition.addToBackStack(null)
+            fragmentTransition.commit()
+        }, 1500)
     }
 
-    override fun onStop() {
-        super.onStop()
-
-        stopLocationUpdates()
-    }
+//    private fun switchToContactFragment() {
+//        checkAndRequestPermissions()
+//
+//        activeFragment = CONTACT
+//
+//        // todo: switch it from hanlder
+//        Handler().postDelayed({
+//            var fragment: Fragment?
+//            fragment = ContactFragment.newInstance(friendsLocalization)
+//            val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
+//            fragmentTransition.replace(R.id.frameLayout, fragment)
+//            fragmentTransition.addToBackStack(null)
+//            fragmentTransition.commit()
+//        }, 1500)
+//    }
 
     private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
@@ -413,6 +537,26 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
+    private fun stopCheckingNotifications() {
+        handler.removeCallbacks(runnable)
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        checkAndRequestPermissions()
+        startLocationUpdates()
+
+        handler.postDelayed(runnable, timeInterval)
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        stopLocationUpdates()
+        stopCheckingNotifications()
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -425,6 +569,25 @@ class HomeActivity : AppCompatActivity() {
                 updateGPS()
             }
         }
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+
+                true
+            }
+
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_home, menu)
+
+        return true
     }
 }
 
