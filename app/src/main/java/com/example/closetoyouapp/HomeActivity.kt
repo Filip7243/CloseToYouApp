@@ -187,7 +187,7 @@ class HomeActivity : AppCompatActivity() {
                     sendPostRequest()
 
                     if (firstTimeLoaded == 0) {
-                        switchToMapFragment()
+//                        switchToMapFragment()
 
                         firstTimeLoaded = 1;
                     }
@@ -356,11 +356,6 @@ class HomeActivity : AppCompatActivity() {
                             .map { it.key }
                             .toList()
                     )
-
-                    if (firstTimeLoaded == 0) {
-                        showNotification(filteredLocations)
-                    }
-
                 }
             }
         })
@@ -543,9 +538,13 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-
         checkAndRequestPermissions()
         startLocationUpdates()
+
+        when (activeFragment) {
+            MAP -> switchToMapFragment()
+            CONTACT -> println("ELO")
+        }
 
         handler.postDelayed(runnable, timeInterval)
     }

@@ -21,7 +21,6 @@ class SettingsActivity : AppCompatActivity() {
 
         val backButton = findViewById<ImageButton>(R.id.back_button)
         backButton.setOnClickListener {
-
             finish()
         }
 
@@ -32,25 +31,41 @@ class SettingsActivity : AppCompatActivity() {
         radioButton10km = findViewById(R.id.radioButton10km)
         radioButtonNotificationsOff = findViewById(R.id.radioButtonNotificationsOff)
 
+        var radius = 0;
+
         loadSettings()
 
         radioGroup.setOnCheckedChangeListener { _, checkedId ->
-            val radius = when (checkedId) {
-                R.id.radioButton1km -> 1 * 1000
-                R.id.radioButton3km -> 3 * 1000
-                R.id.radioButton5km -> 5 * 1000
-                R.id.radioButton10km -> 10 * 1000
-                else -> 0 // Notifications off
+            when (checkedId) {
+                R.id.radioButton1km -> {
+                    radius = 1 * 1000
+                    radioGroup.check(radioButton1km.id)
+                }
+                R.id.radioButton3km -> {
+                    radius = 3 * 1000
+                    radioGroup.check(radioButton3km.id)
+                }
+                R.id.radioButton5km -> {
+                    radius = 5 * 1000
+                    radioGroup.check(radioButton5km.id)
+                }
+                R.id.radioButton10km -> {
+                    radius = 10 * 1000
+                    radioGroup.check(radioButton10km.id)
+                }
+                else -> {
+                    radius = 0 // Notifications off
+                    radioGroup.check(radioButtonNotificationsOff.id)
+                }
             }
-
             saveSettings(radius)
         }
     }
 
     private fun loadSettings() {
-        val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences("USER_PREFERENCES", MODE_PRIVATE)
 
-        when (sharedPreferences.getInt("Radius", 1000)) { // Default to 1km
+        when (sharedPreferences.getInt("RADIUS", 1000)) { // Default to 1km
             0 -> radioButtonNotificationsOff.isChecked = true
             1 -> radioButton1km.isChecked = true
             3 -> radioButton3km.isChecked = true
@@ -60,10 +75,10 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun saveSettings(radius: Int) {
-        val sharedPreferences = getSharedPreferences("AppSettings", MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences("USER_PREFERENCES", MODE_PRIVATE)
 
         sharedPreferences.edit {
-            putInt("Radius", radius)
+            putInt("RADIUS", radius)
         }
     }
 }
