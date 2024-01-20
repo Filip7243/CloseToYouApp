@@ -67,10 +67,10 @@ class SettingsActivity : AppCompatActivity() {
 
         when (sharedPreferences.getInt("RADIUS", 1000)) { // Default to 1km
             0 -> radioButtonNotificationsOff.isChecked = true
-            1 -> radioButton1km.isChecked = true
-            3 -> radioButton3km.isChecked = true
-            5 -> radioButton5km.isChecked = true
-            10 -> radioButton10km.isChecked = true
+            1 * 1000 -> radioButton1km.isChecked = true
+            3 * 1000 -> radioButton3km.isChecked = true
+            5 * 1000 -> radioButton5km.isChecked = true
+            10 * 1000 -> radioButton10km.isChecked = true
         }
     }
 
