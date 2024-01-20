@@ -36,6 +36,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import com.example.closetoyouapp.ActiveFragment.CONTACT
 import com.example.closetoyouapp.ActiveFragment.MAP
+import com.example.closetoyouapp.fragment.ContactFragment
 import com.example.closetoyouapp.fragment.MapFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -69,7 +70,10 @@ class HomeActivity : AppCompatActivity() {
 
     // Friends Info
     private var friendsLocalization: ArrayList<Localization> = arrayListOf()
-    private val localContactsMap = mutableMapOf<String, String>()
+    companion object {
+        val localContactsMap = mutableMapOf<String, String>()
+    }
+
     private val friendsDistance: MutableMap<Localization, Double> = mutableMapOf()
     private val contactPhotos: MutableMap<String, String> = mutableMapOf()
     private val filteredLocations = mutableListOf<Localization>()
@@ -153,13 +157,13 @@ class HomeActivity : AppCompatActivity() {
                 switchToMapFragment()
             }
         }
-//todo: contact phots!
+
         contactBtn.setOnClickListener {
             if (!contactBtn.isSelected) {
                 mapBtn.isSelected = false
                 contactBtn.isSelected = true
 
-//                switchToContactFragment()
+                switchToContactFragment()
             }
         }
 
@@ -187,8 +191,6 @@ class HomeActivity : AppCompatActivity() {
                     sendPostRequest()
 
                     if (firstTimeLoaded == 0) {
-//                        switchToMapFragment()
-
                         firstTimeLoaded = 1;
                     }
                 }
@@ -197,6 +199,10 @@ class HomeActivity : AppCompatActivity() {
 
         updateGPS()
         loadAvatars()
+    }
+
+    fun updateContactPhotosMap(newMap: Map<String, String>) {
+        contactPhotos.putAll(newMap)
     }
 
     private fun startLocationUpdates() {
@@ -459,7 +465,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun switchToMapFragment() {
-        //todo: jesli to jest pierwszy raz to wyslij requesta zeby znajomych pokazac!
         if (checkSelfPermission(
                 this,
                 ACCESS_FINE_LOCATION
@@ -490,24 +495,24 @@ class HomeActivity : AppCompatActivity() {
             fragmentTransition.replace(R.id.frameLayout, fragment)
             fragmentTransition.addToBackStack(null)
             fragmentTransition.commit()
-        }, 1500)
+        }, 2000)
     }
 
-//    private fun switchToContactFragment() {
-//        checkAndRequestPermissions()
-//
-//        activeFragment = CONTACT
-//
-//        // todo: switch it from hanlder
-//        Handler().postDelayed({
-//            var fragment: Fragment?
-//            fragment = ContactFragment.newInstance(friendsLocalization)
-//            val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
-//            fragmentTransition.replace(R.id.frameLayout, fragment)
-//            fragmentTransition.addToBackStack(null)
-//            fragmentTransition.commit()
-//        }, 1500)
-//    }
+    private fun switchToContactFragment() {
+        checkAndRequestPermissions()
+
+        activeFragment = CONTACT
+
+        Handler().postDelayed({
+            var fragment: Fragment?
+            println("LOCS = $friendsLocalization")
+            fragment = ContactFragment.newInstance(friendsLocalization)
+            val fragmentTransition: FragmentTransaction = supportFragmentManager.beginTransaction()
+            fragmentTransition.replace(R.id.frameLayout, fragment)
+            fragmentTransition.addToBackStack(null)
+            fragmentTransition.commit()
+        }, 700)
+    }
 
     private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
@@ -543,7 +548,7 @@ class HomeActivity : AppCompatActivity() {
 
         when (activeFragment) {
             MAP -> switchToMapFragment()
-            CONTACT -> println("ELO")
+            CONTACT -> switchToContactFragment()
         }
 
         handler.postDelayed(runnable, timeInterval)

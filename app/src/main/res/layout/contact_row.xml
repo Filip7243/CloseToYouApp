@@ -1,0 +1,79 @@
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+    <!-- contact_row.xml -->
+    <Button
+        android:id="@+id/button_change_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Change"
+        android:background="@drawable/rounded_button"
+        android:textColor="#FFFFFF"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/contact_name"
+        app:layout_constraintBottom_toBottomOf="@id/contact_number" />
+
+
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/contact_image"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="1dp"
+        android:src="@drawable/background_main"
+        app:shapeAppearance="@style/ShapeAppearanceOverlay.App.CircleImageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:scaleType="centerCrop"/>
+
+
+
+
+
+    <TextView
+        android:id="@+id/contact_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Contact Name"
+        android:textColor="#000000"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@id/contact_image"
+        app:layout_constraintTop_toTopOf="@id/contact_image" />
+
+    <TextView
+        android:id="@+id/contact_number"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="Contact Number"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="@id/contact_name"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@id/contact_name"
+        app:layout_constraintTop_toBottomOf="@id/contact_name" />
+
+    <TextView
+        android:id="@+id/last_seen_text_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="100dp"
+        android:layout_marginTop="23dp"
+        android:text="Widziany: "
+        android:textColor="#000000"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/contact_number" />
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
