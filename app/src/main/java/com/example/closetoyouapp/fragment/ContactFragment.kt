@@ -19,6 +19,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -122,7 +123,9 @@ class ContactFragment : Fragment(), ContactAdapter.OnChangePhotoListener {
             )
             else null
         }
-
+        if (contactsToShow.isEmpty()) {
+            Toast.makeText(context, "Brak znajomych", Toast.LENGTH_LONG).show()
+        }
         println("contactsToShow = $contactsToShow")
 
         val adapter = recyclerView.adapter as? ContactAdapter
