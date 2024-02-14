@@ -39,10 +39,6 @@ Execute command `git clone https://github.com/Filip7243/CloseToYouApp` and run a
 
 ![PhoneNumber_view](architecture/set_phone.png?raw=true)
 
-- Set PIN view
-
-![Set_PIN](architecture/set_PIN.png?raw=true)
-
 - Main Panel after Login
 
 ![Main_Panel](architecture/main_panel.png?raw=true)
