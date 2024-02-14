@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/drawable/selector_button.xml -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Stan aktywny -->
+    <item android:state_selected="true">
+        <shape>
+            <solid android:color="#6200EE" /> <!-- Jasny kolor tła dla stanu aktywnego -->
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    <!-- Stan nieaktywny -->
+    <item>
+        <shape>
+            <solid android:color="#D2C4E6" /> <!-- Ciemny kolor tła dla stanu nieaktywnego -->
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+</selector>
